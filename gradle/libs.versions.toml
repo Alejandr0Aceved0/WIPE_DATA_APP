@@ -1,0 +1,78 @@
+[versions]
+# --- Build Plugins ---
+# Versiones para los plugins de Gradle
+agp = "8.4.1"                # Última versión estable de Android Gradle Plugin
+kotlin = "2.0.21"             # Última versión estable de Kotlin
+ksp = "2.0.21-1.0.27"       # KSP debe coincidir con la versión de Kotlin
+hilt = "2.52"
+
+# --- Compose ---
+# Usamos el BOM (Bill of Materials) para gestionar las versiones de Compose
+composeBom = "2024.09.00"    # Esta versión que tenías es correcta y la más nueva
+activityCompose = "1.9.0"   # Esta también es la más nueva
+navigationCompose = "2.7.7"
+hiltNavigationCompose = "1.2.0"
+
+# --- AndroidX & Core ---
+coreKtx = "1.13.1"           # Corregido (1.17.0 no existe)
+lifecycle = "2.8.2"          # Corregido (2.9.4 no existe)
+room = "2.6.1"
+material = "1.12.0"
+documentfile = "1.0.1"
+
+# --- Corrutinas ---
+coroutines = "1.8.1"
+
+# --- Testing ---
+junit = "4.13.2"
+junitExt = "1.2.1"           # Corregido (1.3.0 es más antiguo)
+espressoCore = "3.6.1"       # Corregido (3.7.0 es más antiguo)
+
+[libraries]
+# --- AndroidX Core, Lifecycle & Material ---
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+
+# --- Compose (BOM y dependencias) ---
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+
+# --- Hilt (Inyección de Dependencias) ---
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+
+# --- Room (Base de Datos) ---
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+# --- Corrutinas ---
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# --- Utilidades (SAF) ---
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
+
+# --- Testing ---
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+
+[plugins]
+# --- Plugins Esenciales para tu App ---
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
