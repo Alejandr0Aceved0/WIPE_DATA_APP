@@ -2,6 +2,7 @@
 # --- Build Plugins ---
 # Versiones para los plugins de Gradle
 agp = "8.4.1"                # Última versión estable de Android Gradle Plugin
+androidxDocumentfile = "1.0.1"
 kotlin = "2.0.21"             # Última versión estable de Kotlin
 ksp = "2.0.21-1.0.27"       # KSP debe coincidir con la versión de Kotlin
 hilt = "2.52"
@@ -60,7 +61,7 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 
 # --- Utilidades (SAF) ---
-androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "androidxDocumentfile" }
 
 # --- Testing ---
 junit = { group = "junit", name = "junit", version.ref = "junit" }

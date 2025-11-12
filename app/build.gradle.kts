@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.alejoacevedodev.wipe_data_beta"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.alejoacevedodev.wipe_data_beta"

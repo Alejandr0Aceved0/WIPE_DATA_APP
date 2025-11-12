@@ -17,80 +17,153 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.provider.DocumentsContract
+import android.provider.DocumentsContract as SupportDocumentsContract
+
+/**
+ * Define el estado de la UI para la pantalla de borrado.
+ * Maneja una lista de carpetas (URIs) en lugar de una sola.
+ */
 
 @HiltViewModel
 class WipeViewModel @Inject constructor(
-    private val application: Application,
+    private val application: Application, // Se usa para el ContentResolver
     private val performWipeUseCase: PerformWipeUseCase,
     private val getLogsUseCase: GetLogsUseCase
 ) : ViewModel() {
 
-    val logs = getLogsUseCase().stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    // --- ESTADOS ---
 
-    // Estado de la UI
+    // Estado principal de la UI (carpetas seleccionadas, método, etc.)
     private val _uiState = MutableStateFlow(WipeUiState())
     val uiState = _uiState.asStateFlow()
 
+    // Flujo de los logs de la base de datos
+    val logs = getLogsUseCase()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = emptyList()
+        )
+
+    // --- MANEJO DE EVENTOS DE LA UI ---
+
+    /**
+     * Se llama cuando el usuario selecciona una carpeta desde el selector SAF.
+     * Toma permiso persistente y añade el URI a la lista de estado.
+     */
     fun onFolderSelected(uri: Uri) {
+        // 1. Toma el permiso persistente para que podamos borrar dentro de esta carpeta
         val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         try {
             application.contentResolver.takePersistableUriPermission(uri, flag)
         } catch (e: SecurityException) {
             e.printStackTrace()
+            // (Opcional: mostrar un error al usuario)
+            return
         }
 
-        _uiState.update { it.copy(selectedUri = uri) }
+        // 2. Añade el URI a la lista (evitando duplicados)
+        _uiState.update { currentState ->
+            if (uri in currentState.selectedFolders) {
+                currentState // No hacer nada si ya está en la lista
+            } else {
+                val updatedList = currentState.selectedFolders + uri
+                currentState.copy(selectedFolders = updatedList)
+            }
+        }
     }
 
+    /**
+     * Se llama cuando el usuario presiona el icono de borrar en un item de la lista.
+     * Libera el permiso persistente y quita el URI de la lista.
+     */
+    fun onRemoveFolder(uri: Uri) {
+        // 1. Libera el permiso que tomamos
+        val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        try {
+            application.contentResolver.releasePersistableUriPermission(uri, flag)
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+
+        // 2. Quita el URI de la lista
+        _uiState.update { currentState ->
+            val updatedList = currentState.selectedFolders - uri
+            currentState.copy(selectedFolders = updatedList)
+        }
+    }
+
+    /**
+     * Actualiza el método de borrado seleccionado en el estado.
+     */
     fun onWipeMethodSelected(method: WipeMethod) {
         _uiState.update { it.copy(selectedMethod = method) }
     }
 
+    /**
+     * Inicia el proceso de borrado.
+     * Itera sobre todas las carpetas seleccionadas y llama al caso de uso.
+     */
     fun onWipeClicked() {
-        val uri = _uiState.value.selectedUri ?: return
+        val foldersToWipe = _uiState.value.selectedFolders
         val method = _uiState.value.selectedMethod
-        val fileName = getFileNameFromUri(uri)
+
+        if (foldersToWipe.isEmpty()) return
 
         _uiState.update { it.copy(isWiping = true) }
 
         viewModelScope.launch {
-            // ¡Llama al Caso de Uso!
-            performWipeUseCase(uri, method, fileName)
-
-            _uiState.update { it.copy(isWiping = false, selectedUri = null) }
+            try {
+                // Itera sobre cada carpeta y la borra
+                for (folderUri in foldersToWipe) {
+                    val folderName = getFileNameFromUri(folderUri)
+                    performWipeUseCase(folderUri, method, folderName)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // (Opcional: mostrar error al usuario)
+            } finally {
+                // Al terminar (o fallar), limpia la lista y detiene el progreso
+                _uiState.update {
+                    it.copy(
+                        isWiping = false,
+                        selectedFolders = emptyList() // Limpia la lista
+                    )
+                }
+            }
         }
     }
 
+    // --- FUNCIONES PRIVADAS DE AYUDA ---
 
+    /**
+     * Obtiene el nombre visible de una carpeta/archivo a partir de su URI de SAF.
+     */
     private fun getFileNameFromUri(uri: Uri): String {
-        // Usa el ContentResolver (disponible desde 'application') para consultar
-        // el nombre del archivo.
+        // --- INICIO DE LA CORRECCIÓN ---
+        // 1. Convertir el Tree URI (si es uno) a un Document URI
+        val queryUri = if (SupportDocumentsContract.isTreeUri(uri)) {
+            SupportDocumentsContract.buildDocumentUriUsingTree(uri, SupportDocumentsContract.getTreeDocumentId(uri))
+        } else {
+            uri
+        }
+        // --- FIN DE LA CORRECCIÓN ---
+
         try {
-            application.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                // Si el cursor es válido y se mueve al primer (y único) resultado
+            // 2. Usar el 'queryUri' (que ahora es un Document URI)
+            application.contentResolver.query(queryUri, null, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
-
-                    // Busca el índice de la columna "display name"
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (nameIndex == -1) {
-                        // Si no se encuentra, retorna la última parte del URI como fallback
-                        return uri.lastPathSegment ?: "unknown"
+                    if (nameIndex != -1) {
+                        return cursor.getString(nameIndex)
                     }
-
-                    // Retorna el nombre del archivo
-                    return cursor.getString(nameIndex)
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-        return uri.lastPathSegment ?: "unknown"
+        // Fallback
+        return uri.lastPathSegment ?: "Carpeta desconocida"
     }
 }
-
-data class WipeUiState(
-    val selectedUri: Uri? = null,
-    val selectedMethod: WipeMethod = WipeMethod.NIST_SP_800_88, // Default
-    val isWiping: Boolean = false
-)
