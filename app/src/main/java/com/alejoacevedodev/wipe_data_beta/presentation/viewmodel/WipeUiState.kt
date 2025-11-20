@@ -9,5 +9,7 @@ data class WipeUiState(
     val isWiping: Boolean = false,
     val currentWipingFile: String = "",
     val wipeFinished: Boolean = false,
-    val deletedCount: Int = 0
+    val deletedCount: Int = 0,
+    val wipeStartTime: Long = 0,
+    val wipeEndTime: Long = 0
 )

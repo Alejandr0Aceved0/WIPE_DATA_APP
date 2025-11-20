@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import com.alejoacevedodev.wipe_data_beta.presentation.ui.ConfirmationScreen
 import com.alejoacevedodev.wipe_data_beta.presentation.ui.LoginScreen
 import com.alejoacevedodev.wipe_data_beta.presentation.ui.OriginSelectionScreen
+import com.alejoacevedodev.wipe_data_beta.presentation.ui.ReportScreen // Asegúrate de importar esto
 import com.alejoacevedodev.wipe_data_beta.presentation.ui.WipeMethodScreen
 import com.alejoacevedodev.wipe_data_beta.presentation.ui.theme.WipeDataTestTheme
 import com.alejoacevedodev.wipe_data_beta.presentation.viewmodel.WipeViewModel
@@ -68,7 +69,7 @@ class MainActivity : ComponentActivity() {
      * Verifica si el permiso MANAGE_EXTERNAL_STORAGE está concedido.
      */
     private fun checkPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { // Android 11+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else {
             true
@@ -106,7 +107,7 @@ fun AppNavigation() {
 
     NavHost(navController = navController, startDestination = "login") {
 
-        //Pantalla de Login
+        // 1. LOGIN
         composable("login") {
             LoginScreen(
                 onLoginSuccess = {
@@ -115,7 +116,7 @@ fun AppNavigation() {
             )
         }
 
-        //Pantalla de Selección de Origen (Carpetas)
+        // 2. SELECCIÓN DE ORIGEN (CARPETAS)
         composable("origins") {
             OriginSelectionScreen(
                 viewModel = sharedViewModel,
@@ -125,7 +126,7 @@ fun AppNavigation() {
             )
         }
 
-        //Pantalla de Selección de Método
+        // 3. SELECCIÓN DE MÉTODO
         composable("methods") {
             WipeMethodScreen(
                 viewModel = sharedViewModel,
@@ -138,7 +139,7 @@ fun AppNavigation() {
             )
         }
 
-        // Pantalla de Confirmación y Borrado
+        // 4. CONFIRMACIÓN Y PROCESO
         composable("confirmation") {
             ConfirmationScreen(
                 viewModel = sharedViewModel,
@@ -146,7 +147,22 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onProcessFinished = {
-                    // Volver a la pantalla de orígenes limpiando la pila
+                    // Al terminar el borrado, vamos al REPORTE
+                    navController.navigate("report")
+                }
+            )
+        }
+
+        // 5. REPORTE FINAL (Aquí es donde se llama)
+        composable("report") {
+            ReportScreen(
+                viewModel = sharedViewModel,
+                onNavigateHome = {
+                    // Reseteamos el estado para una nueva operación
+                    sharedViewModel.resetWipeStatus()
+
+                    // Volvemos a la pantalla de selección de carpetas (origins)
+                    // y limpiamos el historial de navegación para que no se pueda volver atrás al reporte
                     navController.navigate("origins") {
                         popUpTo("origins") { inclusive = true }
                     }
@@ -156,14 +172,10 @@ fun AppNavigation() {
     }
 }
 
-/**
- * Un Composable simple que se muestra cuando el usuario
- * aún no ha concedido el permiso de almacenamiento.
- */
 @Composable
 private fun PermissionRequestScreen(
     modifier: Modifier = Modifier,
-    onRequestPermission: () -> Unit // La acción que se ejecuta al presionar el botón
+    onRequestPermission: () -> Unit
 ) {
     Box(
         modifier = modifier
@@ -176,19 +188,19 @@ private fun PermissionRequestScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                "Permiso Requerido",
+                text = "Permiso Requerido",
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "Para borrar archivos de forma segura en carpetas externas (como DCIM o Descargas), esta aplicación necesita permiso para 'Gestionar todos los archivos'.",
+                text = "Se requiere acceso total a archivos para realizar el borrado seguro.",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = onRequestPermission) {
-                Text("Ir a Ajustes para Conceder Permiso")
+                Text("Conceder Permiso")
             }
         }
     }

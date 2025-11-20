@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.alejoacevedodev.wipe_data_beta.domain.model.WipeMethod
 import com.alejoacevedodev.wipe_data_beta.domain.usecase.GetLogsUseCase
 import com.alejoacevedodev.wipe_data_beta.domain.usecase.PerformWipeUseCase
+import com.alejoacevedodev.wipe_data_beta.utils.PdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -121,6 +122,17 @@ class WipeViewModel @Inject constructor(
      */
     fun resetWipeStatus() {
         _uiState.update { it.copy(wipeFinished = false, deletedCount = 0) }
+    }
+
+    fun generatePdf() {
+        val state = _uiState.value
+        PdfGenerator.generateReportPdf(
+            context = application,
+            methodName = state.selectedMethod?.name ?: "NIST",
+            startTime = state.wipeStartTime,
+            endTime = state.wipeEndTime,
+            deletedCount = state.deletedCount
+        )
     }
 
     // --- HELPERS ---
