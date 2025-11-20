@@ -11,28 +11,23 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.alejoacevedodev.wipe_data_beta.presentation.ui.WipeScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.alejoacevedodev.wipe_data_beta.presentation.ui.ConfirmationScreen
+import com.alejoacevedodev.wipe_data_beta.presentation.ui.LoginScreen
+import com.alejoacevedodev.wipe_data_beta.presentation.ui.OriginSelectionScreen
+import com.alejoacevedodev.wipe_data_beta.presentation.ui.WipeMethodScreen
 import com.alejoacevedodev.wipe_data_beta.presentation.ui.theme.WipeDataTestTheme
+import com.alejoacevedodev.wipe_data_beta.presentation.viewmodel.WipeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -43,29 +38,23 @@ class MainActivity : ComponentActivity() {
         setContent {
             WipeDataTestTheme {
 
-                // 1. Estado para rastrear el permiso
                 var hasPermission by remember {
                     mutableStateOf(checkPermission())
                 }
 
-                // 2. [CÓDIGO FALTANTE] Launcher para abrir los Ajustes
                 val settingsLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) {
-                    // 3. Cuando el usuario vuelve, revisamos de nuevo
                     hasPermission = checkPermission()
                 }
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    if (hasPermission) {
-                        // 4. Si hay permiso, muestra la app principal
-                        WipeScreen(modifier = Modifier.padding(innerPadding))
-                    } else {
-                        // 5. Si NO hay permiso, muestra la pantalla de solicitud
+                if (hasPermission) {
+                    AppNavigation()
+                } else {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                         PermissionRequestScreen(
                             modifier = Modifier.padding(innerPadding),
                             onRequestPermission = {
-                                // 6. [CÓDIGO FALTANTE] Llamamos a la función
                                 requestPermission(settingsLauncher)
                             }
                         )
@@ -82,13 +71,11 @@ class MainActivity : ComponentActivity() {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { // Android 11+
             Environment.isExternalStorageManager()
         } else {
-            // En versiones antiguas (<11), asumimos 'true'
             true
         }
     }
 
     /**
-     * [CÓDIGO FALTANTE]
      * Lanza la pantalla de Ajustes del sistema para que el usuario
      * conceda el permiso manualmente.
      */
@@ -109,7 +96,67 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * [CÓDIGO FALTANTE]
+ * Configuración de navegación entre pantallas.
+ * Flujo: Login -> Orígenes -> Métodos -> Confirmación
+ */
+@Composable
+fun AppNavigation() {
+    val navController = rememberNavController()
+    val sharedViewModel: WipeViewModel = hiltViewModel()
+
+    NavHost(navController = navController, startDestination = "login") {
+
+        //Pantalla de Login
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate("origins")
+                }
+            )
+        }
+
+        //Pantalla de Selección de Origen (Carpetas)
+        composable("origins") {
+            OriginSelectionScreen(
+                viewModel = sharedViewModel,
+                onNavigateToMethods = {
+                    navController.navigate("methods")
+                }
+            )
+        }
+
+        //Pantalla de Selección de Método
+        composable("methods") {
+            WipeMethodScreen(
+                viewModel = sharedViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onMethodSelected = {
+                    navController.navigate("confirmation")
+                }
+            )
+        }
+
+        // Pantalla de Confirmación y Borrado
+        composable("confirmation") {
+            ConfirmationScreen(
+                viewModel = sharedViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onProcessFinished = {
+                    // Volver a la pantalla de orígenes limpiando la pila
+                    navController.navigate("origins") {
+                        popUpTo("origins") { inclusive = true }
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
  * Un Composable simple que se muestra cuando el usuario
  * aún no ha concedido el permiso de almacenamiento.
  */
