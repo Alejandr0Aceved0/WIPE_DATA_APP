@@ -1,14 +1,28 @@
 package com.alejoacevedodev.wipe_data_beta.presentation.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipe_data_beta.presentation.viewmodel.WipeViewModel
@@ -26,19 +41,28 @@ import java.util.Locale
 @Composable
 fun ReportScreen(
     viewModel: WipeViewModel,
-    onNavigateHome: () -> Unit // Para volver al inicio después de ver el reporte
+    onNavigateHome: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // Definición de Colores (Basados en tu diseño)
     val HeaderBlue = Color(0xFF2B4C6F)
     val SuccessGreen = Color(0xFF4CAF50)
+    val BackgroundColor = Color.White
 
-    // Formateador de fecha
+    // --- LÓGICA DE FECHAS Y DURACIÓN ---
+    // Usamos una fecha base de seguridad (Enero 2024) para evitar mostrar "1969" si algo falló
+    val minValidTime = 1704067200000L
+    val startTime = if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
+    val endTime = if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
+
+    // Formatear Fecha de Inicio (ej. 20/11/2025 14:30:00)
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
-    val startDateStr = dateFormat.format(Date(state.wipeStartTime))
-    val durationMillis = state.wipeEndTime - state.wipeStartTime
-    val durationSeconds = durationMillis / 1000
+    val startDateStr = dateFormat.format(Date(startTime))
 
-    // Formato HH:mm:ss para duración
+    // Calcular Duración
+    val durationMillis = if (endTime >= startTime) endTime - startTime else 0
+    val durationSeconds = durationMillis / 1000
     val durationFormatted = String.format(
         Locale.getDefault(),
         "%02d:%02d:%02d",
@@ -47,9 +71,11 @@ fun ReportScreen(
         durationSeconds % 60
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Box(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
+
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
+
+            // 1. ENCABEZADO
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -58,20 +84,34 @@ fun ReportScreen(
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text("NULLUM Lite", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                IconButton(onClick = onNavigateHome, modifier = Modifier.align(Alignment.CenterEnd)) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir", tint = Color.White)
+                Text(
+                    text = "NULLUM Lite",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                // Botón de Salir (Icono puerta)
+                IconButton(
+                    onClick = onNavigateHome,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = "Salir",
+                        tint = Color.White
+                    )
                 }
             }
 
-            // Contenido Scrollable
+            // 2. CONTENIDO DEL REPORTE (Scrollable)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(rememberScrollState()) // Permite scroll si el contenido es largo
                     .padding(24.dp)
             ) {
-                // Mensaje de éxito
+
+                // -- ESTADO DE ÉXITO --
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Filled.CheckCircle,
@@ -89,18 +129,23 @@ fun ReportScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Informe del evento:", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(
+                    text = "Informe del evento:",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Sección Atributos
+                // -- SECCIÓN: ATRIBUTOS --
                 ReportSectionTitle("Atributos")
                 ReportItem("Método de Borrado:", state.selectedMethod?.name ?: "NIST 800-88")
-                ReportItem("Verificación:", "100%") // Simulado
+                ReportItem("Verificación:", "100%")
                 ReportItem("Integridad del Proceso:", "100%")
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Sección Información del Disco
+                // -- SECCIÓN: INFORMACIÓN DEL DISPOSITIVO --
                 ReportSectionTitle("Información del Dispositivo")
                 ReportItem("Modelo:", android.os.Build.MODEL)
                 ReportItem("Fabricante:", android.os.Build.MANUFACTURER)
@@ -108,16 +153,19 @@ fun ReportScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Sección Resultados
+                // -- SECCIÓN: RESULTADOS --
                 ReportSectionTitle("Resultados")
                 ReportItem("Borrado:", "Completo")
-                ReportItem("Carpetas Procesadas:", "${state.deletedCount}")
+                // Aquí mostramos el conteo real que calculamos en el ViewModel
+                ReportItem("Items Eliminados:", "${state.deletedCount}")
                 ReportItem("Inicio:", startDateStr)
                 ReportItem("Duración:", durationFormatted)
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // Botón Descargar PDF
+                // -- BOTONES DE ACCIÓN --
+
+                // 1. Descargar PDF
                 Button(
                     onClick = { viewModel.generatePdf() },
                     modifier = Modifier
@@ -131,37 +179,55 @@ fun ReportScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botón Volver al Inicio (Opcional)
+                // 2. Volver al Inicio
                 OutlinedButton(
                     onClick = onNavigateHome,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, HeaderBlue)
                 ) {
                     Text("Volver al Inicio", color = HeaderBlue)
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
+
+                // Footer Versión
                 Text(
                     text = "Versión\n1.0.12.1",
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    textAlign = TextAlign.Center,
                     color = Color.Gray,
                     fontSize = 12.sp,
                     modifier = Modifier.fillMaxWidth()
                 )
+                // Espacio extra al final para asegurar que se vea todo en scroll
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
+// --- COMPONENTES UI AUXILIARES ---
+
 @Composable
 fun ReportSectionTitle(title: String) {
-    Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+    Text(
+        text = title,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color.Black
+    )
     Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable
 fun ReportItem(label: String, value: String) {
-    Row(modifier = Modifier.padding(vertical = 2.dp)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+    ) {
         Text(
             text = "$label ",
             fontSize = 14.sp,
@@ -171,7 +237,8 @@ fun ReportItem(label: String, value: String) {
         Text(
             text = value,
             fontSize = 14.sp,
-            color = Color.DarkGray
+            color = Color.DarkGray,
+            modifier = Modifier.weight(1f) // Permite que el valor ocupe el resto de la línea
         )
     }
 }

@@ -20,10 +20,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * Estado de la UI.
- */
-
 @HiltViewModel
 class WipeViewModel @Inject constructor(
     private val application: Application,
@@ -37,22 +33,14 @@ class WipeViewModel @Inject constructor(
     val logs = getLogsUseCase()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // --- 1. SELECCIÓN DE CARPETAS ---
-
     fun onFolderSelected(uri: Uri) {
         val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         try {
             application.contentResolver.takePersistableUriPermission(uri, flag)
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
+        } catch (e: SecurityException) { e.printStackTrace() }
 
-        _uiState.update { currentState ->
-            if (uri !in currentState.selectedFolders) {
-                currentState.copy(selectedFolders = currentState.selectedFolders + uri)
-            } else {
-                currentState
-            }
+        _uiState.update { s ->
+            if (uri !in s.selectedFolders) s.copy(selectedFolders = s.selectedFolders + uri) else s
         }
     }
 
@@ -60,98 +48,104 @@ class WipeViewModel @Inject constructor(
         val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         try {
             application.contentResolver.releasePersistableUriPermission(uri, flag)
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
+        } catch (e: SecurityException) { e.printStackTrace() }
         _uiState.update { it.copy(selectedFolders = it.selectedFolders - uri) }
     }
 
-    // --- 2. SELECCIÓN DE MÉTODO (¡ESTA ES LA QUE TE FALTABA!) ---
-
-    /**
-     * Guarda el método seleccionado en el estado para usarlo después en la confirmación.
-     */
     fun selectMethod(method: WipeMethod) {
         _uiState.update { it.copy(selectedMethod = method) }
     }
 
-    // --- 3. EJECUCIÓN DEL BORRADO ---
-
-    /**
-     * Ejecuta el borrado final usando las carpetas y el método guardados.
-     */
     fun executeWipe() {
         val folders = _uiState.value.selectedFolders
-        // Si no hay método seleccionado, usamos NIST por defecto
         val method = _uiState.value.selectedMethod ?: WipeMethod.NIST_SP_800_88
 
         if (folders.isEmpty()) return
 
+        val startTime = System.currentTimeMillis()
+
         _uiState.update {
-            it.copy(isWiping = true, wipeFinished = false, deletedCount = 0)
+            it.copy(
+                isWiping = true,
+                wipeFinished = false,
+                deletedCount = 0,
+                wipeStartTime = startTime
+            )
         }
 
         viewModelScope.launch {
-            var count = 0
+            var totalItemsDeleted = 0
             try {
                 for (folderUri in folders) {
                     val folderName = getFileNameFromUri(folderUri)
                     _uiState.update { it.copy(currentWipingFile = folderName) }
 
-                    performWipeUseCase(folderUri, method, folderName)
-                    count++
+                    val count = performWipeUseCase(folderUri, method, folderName)
+                    totalItemsDeleted += count
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
+                val endTime = System.currentTimeMillis()
                 _uiState.update {
                     it.copy(
                         isWiping = false,
                         currentWipingFile = "",
-                        selectedFolders = emptyList(), // Limpiamos la lista
+                        selectedFolders = emptyList(),
                         wipeFinished = true,
-                        deletedCount = count
+                        deletedCount = totalItemsDeleted, // Guardamos el total
+                        wipeEndTime = endTime
                     )
                 }
             }
         }
     }
 
-    /**
-     * Resetea el estado de "finalizado" para evitar que el mensaje de éxito salga repetido.
-     */
-    fun resetWipeStatus() {
-        _uiState.update { it.copy(wipeFinished = false, deletedCount = 0) }
-    }
-
     fun generatePdf() {
         val state = _uiState.value
+
+        // --- LÓGICA DE SEGURIDAD PARA FECHAS ---
+        // Si por alguna razón las fechas son 0 o muy antiguas (ej. 1970), usamos la fecha actual.
+        // 1704067200000L corresponde a Enero 1, 2024.
+        val minValidTime = 1704067200000L
+
+        val finalStart = if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
+        // Si el fin es inválido, usamos el inicio + 2 segundos para que no se vea raro
+        val finalEnd = if (state.wipeEndTime > minValidTime) state.wipeEndTime else finalStart + 2000
+
         PdfGenerator.generateReportPdf(
             context = application,
             methodName = state.selectedMethod?.name ?: "NIST",
-            startTime = state.wipeStartTime,
-            endTime = state.wipeEndTime,
+            startTime = finalStart,
+            endTime = finalEnd,
             deletedCount = state.deletedCount
         )
     }
 
-    // --- HELPERS ---
+    /**
+     * CORREGIDO: Solo resetea la bandera 'wipeFinished'.
+     * NO borra 'deletedCount' para que el reporte y el PDF puedan mostrar el número.
+     */
+    fun resetWipeStatus() {
+        _uiState.update {
+            it.copy(
+                wipeFinished = false
+                // deletedCount = 0  <-- ELIMINAMOS ESTO PARA NO PERDER EL DATO
+            )
+        }
+    }
 
     private fun getFileNameFromUri(uri: Uri): String {
         val queryUri = if (DocumentsContract.isTreeUri(uri)) {
             DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
-        } else {
-            uri
-        }
+        } else { uri }
         return try {
-            application.contentResolver.query(queryUri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (index != -1) cursor.getString(index) else null
+            application.contentResolver.query(queryUri, null, null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (idx != -1) c.getString(idx) else null
                 } else null
             } ?: uri.lastPathSegment ?: "Desconocido"
-        } catch (e: Exception) {
-            uri.lastPathSegment ?: "Desconocido"
-        }
+        } catch (e: Exception) { uri.lastPathSegment ?: "Desconocido" }
     }
 }

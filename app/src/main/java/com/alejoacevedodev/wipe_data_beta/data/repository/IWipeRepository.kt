@@ -9,5 +9,5 @@ interface IWipeRepository {
      * @param uri El URI del archivo o carpeta (obtenido de SAF)
      * @param method El método de borrado a aplicar
      */
-    suspend fun wipe(uri: Uri, method: WipeMethod): Result<Unit>
+    suspend fun wipe(uri: Uri, method: WipeMethod): Result<Int>
 }

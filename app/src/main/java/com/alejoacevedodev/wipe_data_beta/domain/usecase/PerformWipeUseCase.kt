@@ -11,17 +11,22 @@ class PerformWipeUseCase @Inject constructor(
     private val wipeRepository: IWipeRepository,
     private val logRepository: ILogRepository
 ) {
-    suspend operator fun invoke(uri: Uri, method: WipeMethod, fileName: String) {
-
+    suspend operator fun invoke(uri: Uri, method: WipeMethod, fileName: String): Int {
         val result = wipeRepository.wipe(uri, method)
 
-        // Registra el resultado en el log
+        val itemsDeleted = result.getOrDefault(0)
+        val statusStr = if (result.isSuccess) "SUCCESS" else "FAILURE"
+
+        // Registra en el log
         val log = WipeLog(
-            fileName = fileName, // Necesitarás una forma de obtener el nombre
+            fileName = fileName,
             method = method,
             timestamp = System.currentTimeMillis(),
-            status = if (result.isSuccess) "SUCCESS" else "FAILURE"
+            status = "$statusStr ($itemsDeleted items)"
         )
         logRepository.saveLog(log)
+
+        // Devuelve la cantidad para la UI
+        return itemsDeleted
     }
 }
