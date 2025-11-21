@@ -3,8 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 
-    alias(libs.plugins.hilt) // Para Hilt
-    alias(libs.plugins.ksp)  // Para Hilt y Room
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -17,19 +17,28 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
         release {
-            isMinifyEnabled = false
+            isDebuggable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -37,36 +46,34 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
     }
 }
 
 dependencies {
-    // --- Core y Lifecycle ---
+
+    // --- Core y ciclo de vida ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose) // Para ViewModel
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // --- Compose ---
-    implementation(platform(libs.androidx.compose.bom)) // BOM
+    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.navigation.compose) // Para Navegación
+    implementation(libs.androidx.navigation.compose)
 
-    // --- Inyección de Dependencias (Hilt) ---
+    // --- DI (Hilt) ---
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
-    ksp(libs.hilt.compiler)
 
-    // ... (tus otras dependencias de Room)
-    ksp(libs.room.compiler)
-
-    // --- Base de Datos (Room) ---
+    // --- Base de datos (Room) ---
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
@@ -75,11 +82,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
-    // --- Utilidades (SAF) ---
+    // --- DocumentFile (SAF) ---
     implementation(libs.androidx.documentfile)
 
-    // --- Dependencia para Temas (Material 2) ---
-    // A menudo es necesaria para los temas base de la app (themes.xml)
+    // --- Material Design 2 (temas) ---
     implementation(libs.material)
 
     // --- Testing ---
