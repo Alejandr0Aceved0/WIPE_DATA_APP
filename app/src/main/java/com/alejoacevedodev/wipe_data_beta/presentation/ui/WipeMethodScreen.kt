@@ -40,7 +40,7 @@ fun WipeMethodScreen(
                     .fillMaxWidth()
                     .height(56.dp)
                     .background(HeaderBlue)
-                    .padding(horizontal = 16.dp),
+                    .padding(WindowInsets.statusBars.asPaddingValues()),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text("NULLUM Lite", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)

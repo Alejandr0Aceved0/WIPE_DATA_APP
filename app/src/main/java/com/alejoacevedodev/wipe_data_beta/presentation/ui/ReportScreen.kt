@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,8 +56,10 @@ fun ReportScreen(
     // --- LÓGICA DE FECHAS Y DURACIÓN ---
     // Usamos una fecha base de seguridad (Enero 2024) para evitar mostrar "1969" si algo falló
     val minValidTime = 1704067200000L
-    val startTime = if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
-    val endTime = if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
+    val startTime =
+        if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
+    val endTime =
+        if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
 
     // Formatear Fecha de Inicio (ej. 20/11/2025 14:30:00)
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
@@ -71,7 +76,12 @@ fun ReportScreen(
         durationSeconds % 60
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(BackgroundColor)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundColor)
+            .padding(WindowInsets.statusBars.asPaddingValues())
+    ) {
 
         Column(modifier = Modifier.fillMaxSize()) {
 

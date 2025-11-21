@@ -33,7 +33,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(24.dp),
+            .padding(WindowInsets.statusBars.asPaddingValues()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center // Centrado verticalmente
     ) {

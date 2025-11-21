@@ -30,25 +30,58 @@ fun ConfirmationScreen(
     // Efecto para mostrar el Toast cuando termina
     LaunchedEffect(state.wipeFinished) {
         if (state.wipeFinished) {
-            Toast.makeText(context, "Proceso finalizado. Se borraron ${state.deletedCount} carpetas.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                "Proceso finalizado. Se borraron ${state.deletedCount} carpetas.",
+                Toast.LENGTH_LONG
+            ).show()
             viewModel.resetWipeStatus()
             onProcessFinished()
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(WindowInsets.statusBars.asPaddingValues())
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header
             Box(
-                modifier = Modifier.fillMaxWidth().height(56.dp).background(HeaderBlue).padding(horizontal = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .background(HeaderBlue)
+                    .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text("NULLUM Lite", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir", tint = Color.White, modifier = Modifier.align(Alignment.CenterEnd))
+                Text(
+                    "NULLUM Lite",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = "Salir",
+                    tint = Color.White,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
             }
 
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Confirmación de Borrado", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Confirmación de Borrado",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Card(
@@ -59,7 +92,10 @@ fun ConfirmationScreen(
                         Text("Método seleccionado:", fontWeight = FontWeight.Bold)
                         Text(state.selectedMethod?.name ?: "Ninguno")
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("Carpetas a borrar (${state.selectedFolders.size}):", fontWeight = FontWeight.Bold)
+                        Text(
+                            "Carpetas a borrar (${state.selectedFolders.size}):",
+                            fontWeight = FontWeight.Bold
+                        )
                         state.selectedFolders.forEach {
                             Text("- ${it.path?.substringAfterLast('/')}", fontSize = 14.sp)
                         }
@@ -72,7 +108,9 @@ fun ConfirmationScreen(
                 Button(
                     onClick = { viewModel.executeWipe() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
                     shape = RoundedCornerShape(8.dp),
                     enabled = !state.isWiping
                 ) {
@@ -90,7 +128,9 @@ fun ConfirmationScreen(
         // Indicador de Carga
         if (state.isWiping) {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

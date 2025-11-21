@@ -42,17 +42,35 @@ fun OriginSelectionScreen(
         }
     )
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(WindowInsets.statusBars.asPaddingValues())
+    ) {
         // Header
         Box(
-            modifier = Modifier.fillMaxWidth().height(56.dp).background(HeaderBlue).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(HeaderBlue)
+                .padding(horizontal = 16.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             Text("NULLUM Lite", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir", tint = Color.White, modifier = Modifier.align(Alignment.CenterEnd))
+            Icon(
+                Icons.AutoMirrored.Filled.ExitToApp,
+                contentDescription = "Salir",
+                tint = Color.White,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
         }
 
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
             Text(
                 text = "Selección del origen de borrado",
                 fontSize = 18.sp,
@@ -84,7 +102,9 @@ fun OriginSelectionScreen(
                 // Botón Continuar
                 Button(
                     onClick = onNavigateToMethods,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = HeaderBlue),
                     shape = RoundedCornerShape(8.dp)
                 ) {
@@ -95,7 +115,12 @@ fun OriginSelectionScreen(
             }
 
             // Footer
-            Text("Versión\n1.0.12.1", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text(
+                "Versión\n1.0.12.1",
+                color = Color.Gray,
+                fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
     }
 }
@@ -105,13 +130,23 @@ fun OriginCard2(title: String, color: Color, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = color),
-        modifier = Modifier.fillMaxWidth().height(60.dp).clickable { onClick() }
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .clickable { onClick() }
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Info, contentDescription = null, tint = Color.Black, modifier = Modifier.size(28.dp))
+            Icon(
+                Icons.Default.Info,
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier.size(28.dp)
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = title, fontSize = 16.sp, color = Color.Black)
         }
@@ -121,14 +156,20 @@ fun OriginCard2(title: String, color: Color, onClick: () -> Unit) {
 @Composable
 fun FolderItem(uri: Uri, onRemove: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = uri.path?.substringAfterLast('/') ?: "...", modifier = Modifier.weight(1f), maxLines = 1)
+            Text(
+                text = uri.path?.substringAfterLast('/') ?: "...",
+                modifier = Modifier.weight(1f),
+                maxLines = 1
+            )
             IconButton(onClick = onRemove) {
                 Icon(Icons.Default.Delete, contentDescription = "Quitar", tint = Color.Red)
             }
