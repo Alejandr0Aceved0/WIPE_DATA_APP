@@ -29,6 +29,9 @@ junit = "4.13.2"
 junitExt = "1.2.1"           # Corregido (1.3.0 es más antiguo)
 espressoCore = "3.6.1"       # Corregido (3.7.0 es más antiguo)
 
+# --- PDF
+commonsNet = "3.10.0"
+
 [libraries]
 # --- AndroidX Core, Lifecycle & Material ---
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -69,6 +72,9 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+
+# --- PDF
+commons-net = { group = "commons-net", name = "commons-net", version.ref = "commonsNet" }
 
 [plugins]
 # --- Plugins Esenciales para tu App ---

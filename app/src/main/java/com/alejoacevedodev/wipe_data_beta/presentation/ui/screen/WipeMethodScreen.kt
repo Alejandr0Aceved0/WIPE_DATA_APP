@@ -1,4 +1,4 @@
-package com.alejoacevedodev.wipe_data_beta.presentation.ui
+package com.alejoacevedodev.wipe_data_beta.presentation.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

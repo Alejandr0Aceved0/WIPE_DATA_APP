@@ -1,5 +1,7 @@
-package com.alejoacevedodev.wipe_data_beta.presentation.ui
+package com.alejoacevedodev.wipe_data_beta.presentation.ui.screen
 
+import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -157,9 +159,9 @@ fun ReportScreen(
 
                 // -- SECCIÓN: INFORMACIÓN DEL DISPOSITIVO --
                 ReportSectionTitle("Información del Dispositivo")
-                ReportItem("Modelo:", android.os.Build.MODEL)
-                ReportItem("Fabricante:", android.os.Build.MANUFACTURER)
-                ReportItem("Plataforma:", "Android ${android.os.Build.VERSION.RELEASE}")
+                ReportItem("Modelo:", Build.MODEL)
+                ReportItem("Fabricante:", Build.MANUFACTURER)
+                ReportItem("Plataforma:", "Android ${Build.VERSION.RELEASE}")
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -196,7 +198,7 @@ fun ReportScreen(
                         .fillMaxWidth()
                         .height(50.dp),
                     shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, HeaderBlue)
+                    border = BorderStroke(1.dp, HeaderBlue)
                 ) {
                     Text("Volver al Inicio", color = HeaderBlue)
                 }

@@ -11,5 +11,11 @@ data class WipeUiState(
     val wipeFinished: Boolean = false,
     val deletedCount: Int = 0,
     val wipeStartTime: Long = 0,
-    val wipeEndTime: Long = 0
+    val wipeEndTime: Long = 0,
+
+    // Campos FTP
+    val ftpHost: String = "",
+    val ftpPort: String = "21", // Manejamos como String para el TextField
+    val ftpUser: String = "",
+    val ftpPass: String = ""
 )

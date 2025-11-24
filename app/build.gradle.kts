@@ -84,6 +84,7 @@ dependencies {
 
     // --- DocumentFile (SAF) ---
     implementation(libs.androidx.documentfile)
+    implementation(libs.commons.net)
 
     // --- Material Design 2 (temas) ---
     implementation(libs.material)

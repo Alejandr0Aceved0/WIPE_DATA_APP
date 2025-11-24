@@ -1,4 +1,4 @@
-package com.alejoacevedodev.wipe_data_beta.presentation.ui
+package com.alejoacevedodev.wipe_data_beta.presentation.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background

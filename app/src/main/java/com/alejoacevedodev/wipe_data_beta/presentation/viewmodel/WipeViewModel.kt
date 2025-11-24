@@ -5,11 +5,14 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alejoacevedodev.wipe_data_beta.domain.model.WipeMethod
 import com.alejoacevedodev.wipe_data_beta.domain.usecase.GetLogsUseCase
 import com.alejoacevedodev.wipe_data_beta.domain.usecase.PerformWipeUseCase
+import com.alejoacevedodev.wipe_data_beta.utils.FtpPrefs
+import com.alejoacevedodev.wipe_data_beta.utils.FtpUploader
 import com.alejoacevedodev.wipe_data_beta.utils.PdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,12 +36,54 @@ class WipeViewModel @Inject constructor(
     val logs = getLogsUseCase()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    init {
+        loadFtpConfig()
+    }
+
+    // --- CONFIGURACIÓN FTP ---
+
+    private fun loadFtpConfig() {
+        val host = FtpPrefs.getHost(application)
+        val port = FtpPrefs.getPort(application)
+        val user = FtpPrefs.getUser(application)
+        val pass = FtpPrefs.getPass(application)
+
+        _uiState.update {
+            it.copy(
+                ftpHost = host,
+                ftpPort = port.toString(),
+                ftpUser = user,
+                ftpPass = pass
+            )
+        }
+    }
+
+    fun updateFtpHost(value: String) { _uiState.update { it.copy(ftpHost = value) } }
+    // Filtramos para que solo sean números
+    fun updateFtpPort(value: String) {
+        if (value.all { it.isDigit() }) {
+            _uiState.update { it.copy(ftpPort = value) }
+        }
+    }
+    fun updateFtpUser(value: String) { _uiState.update { it.copy(ftpUser = value) } }
+    fun updateFtpPass(value: String) { _uiState.update { it.copy(ftpPass = value) } }
+
+    fun saveFtpConfig() {
+        val s = _uiState.value
+        // Convertir puerto a Int, default 21 si está vacío
+        val portInt = s.ftpPort.toIntOrNull() ?: 21
+
+        FtpPrefs.saveConfig(application, s.ftpHost, s.ftpUser, s.ftpPass)
+        Toast.makeText(application, "Configuración FTP Guardada", Toast.LENGTH_SHORT).show()
+    }
+
+    // --- LÓGICA DE BORRADO (EXISTENTE) ---
+
     fun onFolderSelected(uri: Uri) {
         val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         try {
             application.contentResolver.takePersistableUriPermission(uri, flag)
         } catch (e: SecurityException) { e.printStackTrace() }
-
         _uiState.update { s ->
             if (uri !in s.selectedFolders) s.copy(selectedFolders = s.selectedFolders + uri) else s
         }
@@ -59,19 +104,10 @@ class WipeViewModel @Inject constructor(
     fun executeWipe() {
         val folders = _uiState.value.selectedFolders
         val method = _uiState.value.selectedMethod ?: WipeMethod.NIST_SP_800_88
-
         if (folders.isEmpty()) return
 
         val startTime = System.currentTimeMillis()
-
-        _uiState.update {
-            it.copy(
-                isWiping = true,
-                wipeFinished = false,
-                deletedCount = 0,
-                wipeStartTime = startTime
-            )
-        }
+        _uiState.update { it.copy(isWiping = true, wipeFinished = false, deletedCount = 0, wipeStartTime = startTime) }
 
         viewModelScope.launch {
             var totalItemsDeleted = 0
@@ -79,23 +115,14 @@ class WipeViewModel @Inject constructor(
                 for (folderUri in folders) {
                     val folderName = getFileNameFromUri(folderUri)
                     _uiState.update { it.copy(currentWipingFile = folderName) }
-
-                    val count = performWipeUseCase(folderUri, method, folderName)
-                    totalItemsDeleted += count
+                    totalItemsDeleted += performWipeUseCase(folderUri, method, folderName)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
                 val endTime = System.currentTimeMillis()
                 _uiState.update {
-                    it.copy(
-                        isWiping = false,
-                        currentWipingFile = "",
-                        selectedFolders = emptyList(),
-                        wipeFinished = true,
-                        deletedCount = totalItemsDeleted, // Guardamos el total
-                        wipeEndTime = endTime
-                    )
+                    it.copy(isWiping = false, currentWipingFile = "", selectedFolders = emptyList(), wipeFinished = true, deletedCount = totalItemsDeleted, wipeEndTime = endTime)
                 }
             }
         }
@@ -103,36 +130,47 @@ class WipeViewModel @Inject constructor(
 
     fun generatePdf() {
         val state = _uiState.value
-
-        // --- LÓGICA DE SEGURIDAD PARA FECHAS ---
-        // Si por alguna razón las fechas son 0 o muy antiguas (ej. 1970), usamos la fecha actual.
-        // 1704067200000L corresponde a Enero 1, 2024.
         val minValidTime = 1704067200000L
+        val safeStart = if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
+        val safeEnd = if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
 
-        val finalStart = if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
-        // Si el fin es inválido, usamos el inicio + 2 segundos para que no se vea raro
-        val finalEnd = if (state.wipeEndTime > minValidTime) state.wipeEndTime else finalStart + 2000
-
-        PdfGenerator.generateReportPdf(
+        val pdfFile = PdfGenerator.generateReportPdf(
             context = application,
             methodName = state.selectedMethod?.name ?: "NIST",
-            startTime = finalStart,
-            endTime = finalEnd,
+            startTime = safeStart,
+            endTime = safeEnd,
             deletedCount = state.deletedCount
         )
+
+        if (pdfFile != null && pdfFile.exists()) {
+            if (state.ftpHost.isNotEmpty() && state.ftpUser.isNotEmpty()) {
+                viewModelScope.launch {
+                    Toast.makeText(application, "Subiendo a FTP...", Toast.LENGTH_SHORT).show()
+
+                    val portInt = state.ftpPort.toIntOrNull() ?: 21
+
+                    val uploaded = FtpUploader.uploadFile(
+                        file = pdfFile,
+                        host = state.ftpHost,
+                        user = state.ftpUser,
+                        pass = state.ftpPass,
+                        port = portInt // Pasamos el puerto dinámico
+                    )
+
+                    if (uploaded) {
+                        Toast.makeText(application, "Reporte subido a la nube exitosamente", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(application, "Fallo la subida FTP (Guardado local)", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } else {
+                Toast.makeText(application, "PDF guardado localmente (FTP no configurado)", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
-    /**
-     * CORREGIDO: Solo resetea la bandera 'wipeFinished'.
-     * NO borra 'deletedCount' para que el reporte y el PDF puedan mostrar el número.
-     */
     fun resetWipeStatus() {
-        _uiState.update {
-            it.copy(
-                wipeFinished = false
-                // deletedCount = 0  <-- ELIMINAMOS ESTO PARA NO PERDER EL DATO
-            )
-        }
+        _uiState.update { it.copy(wipeFinished = false, deletedCount = 0) }
     }
 
     private fun getFileNameFromUri(uri: Uri): String {
