@@ -2,17 +2,7 @@ package com.alejoacevedodev.wipe_data_beta.presentation.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -50,23 +40,24 @@ import java.util.Locale
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (String) -> Unit // 👈 Solo recibe el callback de éxito
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // Necesitamos el contexto para mostrar el Toast de error
     val context = LocalContext.current
-
     val DarkBlueButton = Color(0xFF2B4C6F)
 
+    // Corrección de Status Bar (Fondo blanco + Padding)
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(WindowInsets.statusBars.asPaddingValues())
+            .statusBarsPadding() // Importante para no solapar iconos de sistema
     ) {
+        // Eliminado el botón de configuración FTP
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -157,23 +148,24 @@ fun LoginScreen(
             // Botón Ingresar con VALIDACIÓN
             Button(
                 onClick = {
-                    // 1. Obtener la fecha actual en formato dd/MM/yyyy
-                    val currentDate =
-                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+                    // 0. Validar vacíos
+                    if (username.isBlank() || password.isBlank()) {
+                        Toast.makeText(context, "Por favor, complete todos los campos.", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
 
-                    // 2. Construir las credenciales esperadas
+                    // 1. Obtener la fecha actual
+                    val currentDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+
+                    // 2. Credenciales esperadas
                     val expectedUser = "Prueba2025"
                     val expectedPass = "Prueba2025.*$currentDate"
 
                     // 3. Validar
                     if (username == expectedUser && password == expectedPass) {
-                        onLoginSuccess()
+                        onLoginSuccess(username) // Pasamos el nombre de usuario al callback
                     } else {
-                        Toast.makeText(
-                            context,
-                            "Credenciales incorrectas. Verifique usuario y/o contraseña.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(context, "Credenciales incorrectas.\nLa contraseña cambia según la fecha.", Toast.LENGTH_LONG).show()
                     }
                 },
                 modifier = Modifier
@@ -185,7 +177,6 @@ fun LoginScreen(
                 Text("Ingresar", fontSize = 18.sp, color = Color.White)
             }
 
-            // Espaciador flexible para empujar el footer
             Spacer(modifier = Modifier.weight(1f))
 
             Text(

@@ -5,6 +5,7 @@ import com.alejoacevedodev.wipe_data_beta.domain.model.WipeMethod
 
 data class WipeUiState(
     // Selección de Archivos
+    val userName: String = "",
     val selectedFolders: List<Uri> = emptyList(),
     val selectedMethod: WipeMethod? = null,
 

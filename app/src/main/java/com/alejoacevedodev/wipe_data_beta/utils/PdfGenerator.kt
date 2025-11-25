@@ -25,16 +25,18 @@ import kotlin.math.pow
 object PdfGenerator {
 
     /**
-     * Genera el reporte en PDF con diseño de Certificado Profesional y detalles de pases.
+     * Genera el reporte PDF con diseño de Certificado Profesional,
+     * detalles técnicos, lista de archivos y paginación automática.
      */
     fun generateReportPdf(
         context: Context,
+        operatorName: String, // 👈 AÑADIDO: Nombre del usuario que realizó el borrado
         methodName: String,
         startTime: Long,
         endTime: Long,
         deletedCount: Int,
         deletedFiles: List<String>,
-        freedBytes: Long = 0L // Parámetro para espacio liberado
+        freedBytes: Long = 0L
     ): File? {
         val pdfDocument = PdfDocument()
         val pageWidth = 595
@@ -72,7 +74,7 @@ object PdfGenerator {
         y += 20f
         canvas.drawText("Dispositivo: ${Build.MODEL}", margin, y, subtitlePaint)
 
-        // Sello Dorado
+        // Sello Dorado (Simulación gráfica)
         drawSeal(canvas, pageWidth - margin - 30f, 60f)
 
         y += 30f
@@ -96,6 +98,9 @@ object PdfGenerator {
         canvas.drawLine(margin, y, rightMargin, y, linePaint)
         y += 20f
 
+        // --- AÑADIDO: Mostrar Operador ---
+        y = drawRow(canvas, "Operador Responsable:", operatorName, margin, rightMargin, y, labelPaint, valueBoldPaint)
+
         val methodDisplay = when {
             methodName.contains("DoD") -> "DoD 5220.22-M (3 Pases)"
             methodName.contains("BSI") -> "BSI TL-03423 (7 Pases)"
@@ -115,7 +120,6 @@ object PdfGenerator {
 
         y = drawRow(canvas, "Modelo:", Build.MODEL, margin, rightMargin, y, labelPaint, valuePaint)
 
-        // Serial
         val deviceId = getDeviceUniqueId(context)
         y = drawRow(canvas, "ID Dispositivo (Serial):", deviceId, margin, rightMargin, y, labelPaint, valuePaint)
 
@@ -126,7 +130,8 @@ object PdfGenerator {
         val storageInfo = getStorageDetails()
         y = drawRow(canvas, "Capacidad Total:", storageInfo.total, margin, rightMargin, y, labelPaint, valuePaint)
         y = drawRow(canvas, "Espacio Disponible:", storageInfo.available, margin, rightMargin, y, labelPaint, valuePaint)
-        // Mostramos el espacio liberado en verde
+
+        // Espacio liberado en verde
         y = drawRow(canvas, "Espacio Liberado:", formatFileSize(freedBytes), margin, rightMargin, y, labelPaint, successPaint)
         y += 20f
 
@@ -164,6 +169,16 @@ object PdfGenerator {
         y += 20f
         val passes = getPassesList(methodName)
         for (pass in passes) {
+            // Chequear si cabe en la página
+            if (y > pageHeight - margin - 40f) {
+                drawFooter(canvas, pageWidth.toFloat(), y + 20f)
+                pdfDocument.finishPage(page)
+                page = startNewPage()
+                canvas = page.canvas
+                y = margin + 20f
+                canvas.drawText("Continuación Pasos...", margin, y, headerSectionPaint)
+                y += 25f
+            }
             canvas.drawText("• $pass", margin + 10f, y, valuePaint)
             drawTextRightAligned(canvas, "OK", rightMargin - 20f, y, successPaint)
             y += 15f
@@ -172,7 +187,7 @@ object PdfGenerator {
         canvas.drawLine(margin, y, rightMargin, y, linePaint)
         y += 30f
 
-        // LISTA DE ARCHIVOS
+        // LISTA DE ARCHIVOS (Paginada)
         canvas.drawText("Detalle de Archivos Eliminados:", margin, y, headerSectionPaint)
         y += 20f
 
@@ -188,9 +203,10 @@ object PdfGenerator {
                     page = startNewPage()
                     canvas = page.canvas
                     y = margin + 20f
-                    canvas.drawText("Continuación...", margin, y, headerSectionPaint)
+                    canvas.drawText("Continuación Archivos...", margin, y, headerSectionPaint)
                     y += 25f
                 }
+                // Acortar nombre si es muy largo para que no se salga
                 val cleanName = if (fileName.length > 90) fileName.take(87) + "..." else fileName
                 canvas.drawText("• $cleanName", margin, y, fileListPaint)
                 y += 12f
@@ -209,8 +225,10 @@ object PdfGenerator {
         drawFooter(canvas, pageWidth.toFloat(), y)
         pdfDocument.finishPage(page)
 
-        // GUARDADO
+        // --- GUARDADO ---
         val fileName = "Certificado_Nullum_${System.currentTimeMillis()}.pdf"
+
+        // 1. Intentar carpeta pública "Documentos"
         val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
         val reportsDir = File(documentsDir, "Reportes_Nullum")
 
@@ -223,11 +241,20 @@ object PdfGenerator {
 
         return try {
             pdfDocument.writeTo(FileOutputStream(file))
-            MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), arrayOf("application/pdf"), null)
+
+            // Avisar al sistema (Media Scanner)
+            MediaScannerConnection.scanFile(
+                context,
+                arrayOf(file.absolutePath),
+                arrayOf("application/pdf"),
+                null
+            )
+
             Toast.makeText(context, "Guardado en: Documentos/Reportes_Nullum", Toast.LENGTH_LONG).show()
             file
         } catch (e: Exception) {
             e.printStackTrace()
+            // Fallback a privado si falla público
             saveToPrivateStorage(context, pdfDocument, fileName)
         } finally {
             pdfDocument.close()

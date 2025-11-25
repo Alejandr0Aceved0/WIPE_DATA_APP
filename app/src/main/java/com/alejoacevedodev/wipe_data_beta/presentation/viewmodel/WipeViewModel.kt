@@ -46,6 +46,10 @@ class WipeViewModel @Inject constructor(
         loadFtpConfig()
     }
 
+    fun setLoginUser(name: String) {
+        _uiState.update { it.copy(userName = name) }
+    }
+
     // ========================================================================
     // 1. GESTIÓN DE CARPETAS (SAF)
     // ========================================================================
@@ -162,6 +166,7 @@ class WipeViewModel @Inject constructor(
         // 1. Generar el PDF
         val pdfFile = PdfGenerator.generateReportPdf(
             context = application,
+            operatorName = state.userName,
             methodName = state.selectedMethod?.name ?: "NIST",
             startTime = safeStart,
             endTime = safeEnd,

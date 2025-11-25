@@ -13,18 +13,22 @@ import com.alejoacevedodev.wipe_data_beta.presentation.ui.screen.ReportScreen
 import com.alejoacevedodev.wipe_data_beta.presentation.ui.screen.WipeMethodScreen
 import com.alejoacevedodev.wipe_data_beta.presentation.viewmodel.WipeViewModel
 
+/**
+ * Configuración de navegación entre pantallas.
+ * Flujo: Login -> Orígenes -> Métodos -> Confirmación -> Reporte
+ */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    // ViewModel compartido para mantener el estado (carpetas, método) durante el flujo
+
+    // ViewModel compartido para mantener el estado durante el flujo
     val sharedViewModel: WipeViewModel = hiltViewModel()
 
-    // Función helper para cerrar sesión y volver al login
+    // Función para volver al login y limpiar la pila
     val navigateToLogin = {
-        sharedViewModel.resetWipeStatus() // Limpiamos estado
+        sharedViewModel.resetWipeStatus()
         navController.navigate("login") {
-            // Limpiamos toda la pila de navegación hasta el inicio
-            popUpTo(0) { inclusive = true }
+            popUpTo("login") { inclusive = true }
         }
     }
 
@@ -33,7 +37,9 @@ fun AppNavigation() {
         // 1. LOGIN
         composable("login") {
             LoginScreen(
-                onLoginSuccess = {
+                onLoginSuccess = { userName ->
+                    // Guardamos el usuario en el ViewModel
+                    sharedViewModel.setLoginUser(userName)
                     navController.navigate("origins")
                 }
             )
