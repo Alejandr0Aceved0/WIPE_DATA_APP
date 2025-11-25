@@ -2,17 +2,22 @@ package com.alejoacevedodev.wipe_data_beta.utils
 
 import android.util.Log
 import org.apache.commons.net.ftp.FTP
-import org.apache.commons.net.ftp.FTPClient
+import org.apache.commons.net.ftp.FTPSClient
 import org.apache.commons.net.ftp.FTPReply
 import java.io.File
 import java.io.FileInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.apache.commons.net.ftp.FTPClient
 
 object FtpUploader {
 
     private const val TAG = "FtpLog"
 
+    /**
+     * Sube un archivo usando FTPS (FTP Seguro sobre TLS).
+     * Intenta modos Pasivo y Activo automáticamente para máxima compatibilidad.
+     */
     suspend fun uploadFile(
         file: File,
         host: String,
@@ -21,7 +26,9 @@ object FtpUploader {
         port: Int = 21
     ): Boolean = withContext(Dispatchers.IO) {
 
-        Log.d(TAG, "🚀 INICIANDO INTENTO DE SUBIDA (AUTO-DETECT)")
+        Log.d(TAG, "========================================")
+        Log.d(TAG, "🚀 INICIANDO SUBIDA (Auto-Detect)")
+        Log.d(TAG, "Destino: $host:$port")
 
         // INTENTO 1: MODO PASIVO (El estándar moderno)
         if (uploadWithMode(file, host, user, pass, port, usePassive = true)) {
@@ -79,8 +86,6 @@ object FtpUploader {
             }
 
             ftpClient.setFileType(FTP.BINARY_FILE_TYPE)
-
-            // Forzar codificación UTF-8 para nombres de archivo (evita errores con tildes)
             ftpClient.controlEncoding = "UTF-8"
 
             Log.d(TAG, "📤 Subiendo archivo...")

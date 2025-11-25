@@ -15,10 +15,10 @@ data class WipeUiState(
     // Resultados del Proceso (Para el Reporte)
     val wipeFinished: Boolean = false,
     val deletedCount: Int = 0,
+    val deletedFilesList: List<String> = emptyList(),
+    val freedBytes: Long = 0L,
     val wipeStartTime: Long = 0,
     val wipeEndTime: Long = 0,
-    // Lista detallada de archivos borrados para el PDF
-    val deletedFilesList: List<String> = emptyList(),
 
     // Configuración FTP
     val ftpHost: String = "",

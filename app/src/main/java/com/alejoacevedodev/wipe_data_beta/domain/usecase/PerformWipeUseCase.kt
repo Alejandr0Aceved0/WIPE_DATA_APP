@@ -1,6 +1,7 @@
 package com.alejoacevedodev.wipe_data_beta.domain.usecase
 
 import android.net.Uri
+import com.alejoacevedodev.wipe_data_beta.data.model.WipeResult
 import com.alejoacevedodev.wipe_data_beta.data.repository.IWipeRepository
 import com.alejoacevedodev.wipe_data_beta.domain.model.WipeLog
 import com.alejoacevedodev.wipe_data_beta.domain.model.WipeMethod
@@ -13,33 +14,34 @@ class PerformWipeUseCase @Inject constructor(
 ) {
     /**
      * Ejecuta el borrado llamando al repositorio.
-     * * @param uri El URI de la carpeta o archivo a borrar.
+     *
+     * @param uri El URI de la carpeta o archivo a borrar.
      * @param method El método de borrado (DoD, NIST, BSI).
-     * @param fileName El nombre del recurso principal (para el log).
-     * @return Una lista de Strings con los nombres de todos los archivos y carpetas eliminados.
+     * @param fileName El nombre del recurso principal (para el log interno).
+     * @return Un objeto WipeResult con la lista de archivos y el total de bytes liberados.
      */
-    suspend operator fun invoke(uri: Uri, method: WipeMethod, fileName: String): List<String> {
+    suspend operator fun invoke(uri: Uri, method: WipeMethod, fileName: String): WipeResult {
         // 1. Ejecuta el borrado en el repositorio
-        // Ahora 'wipe' devuelve un Result<List<String>>
+        // Ahora 'wipe' devuelve un Result<WipeResult>
         val result = wipeRepository.wipe(uri, method)
 
-        // 2. Obtiene la lista de archivos borrados (o lista vacía si falló)
-        val deletedFiles = result.getOrDefault(emptyList())
-        val count = deletedFiles.size
+        // 2. Obtiene el resultado o un valor vacío por defecto si falló
+        val wipeData = result.getOrDefault(WipeResult(emptyList(), 0L))
 
-        // 3. Determina el estado para el log interno
+        val count = wipeData.deletedFiles.size
         val statusStr = if (result.isSuccess) "SUCCESS" else "FAILURE"
 
-        // 4. Guarda el registro en la base de datos local (Room)
+        // 3. Guarda el registro en la base de datos local (Room) para historial
         val log = WipeLog(
             fileName = fileName,
             method = method,
             timestamp = System.currentTimeMillis(),
+            // Guardamos un resumen en el status: "SUCCESS (25 items)"
             status = "$statusStr ($count items)"
         )
         logRepository.saveLog(log)
 
-        // 5. Devuelve la lista detallada para que el ViewModel la use en el PDF
-        return deletedFiles
+        // 4. Devuelve los datos completos al ViewModel para el reporte PDF
+        return wipeData
     }
 }

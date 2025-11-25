@@ -1,6 +1,7 @@
 package com.alejoacevedodev.wipe_data_beta.data.repository
 
 import android.net.Uri
+import com.alejoacevedodev.wipe_data_beta.data.model.WipeResult
 import com.alejoacevedodev.wipe_data_beta.domain.model.WipeMethod
 
 interface IWipeRepository {
@@ -9,5 +10,5 @@ interface IWipeRepository {
      * @param uri El URI del archivo o carpeta (obtenido de SAF)
      * @param method El método de borrado a aplicar
      */
-    suspend fun wipe(uri: Uri, method: WipeMethod): Result<List<String>>
+    suspend fun wipe(uri: Uri, method: WipeMethod): Result<WipeResult>
 }

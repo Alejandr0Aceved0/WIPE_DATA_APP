@@ -1,6 +1,8 @@
 package com.alejoacevedodev.wipe_data_beta.utils
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
@@ -8,12 +10,17 @@ import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
+import android.provider.Settings
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlin.math.log10
+import kotlin.math.pow
 
 object PdfGenerator {
 
@@ -26,7 +33,8 @@ object PdfGenerator {
         startTime: Long,
         endTime: Long,
         deletedCount: Int,
-        deletedFiles: List<String> // Lista con los nombres de archivos borrados
+        deletedFiles: List<String>,
+        freedBytes: Long = 0L // Parámetro para espacio liberado
     ): File? {
         val pdfDocument = PdfDocument()
         val pageWidth = 595
@@ -34,51 +42,15 @@ object PdfGenerator {
         var pageNumber = 1
 
         // --- DEFINICIÓN DE ESTILOS (Pinceles) ---
-        val titlePaint = Paint().apply {
-            textSize = 24f
-            isFakeBoldText = true
-            color = Color.parseColor("#3F51B5") // Azul Certificado
-            isAntiAlias = true
-        }
-        val subtitlePaint = Paint().apply {
-            textSize = 14f
-            isFakeBoldText = true
-            color = Color.BLACK
-            isAntiAlias = true
-        }
-        val headerSectionPaint = Paint().apply {
-            textSize = 16f
-            isFakeBoldText = true
-            color = Color.parseColor("#444444") // Gris oscuro
-            isAntiAlias = true
-        }
-        val labelPaint = Paint().apply {
-            textSize = 12f
-            color = Color.parseColor("#666666") // Gris claro
-            isAntiAlias = true
-        }
-        val valuePaint = Paint().apply {
-            textSize = 12f
-            color = Color.BLACK
-            isAntiAlias = true
-        }
-        val valueBoldPaint = Paint().apply {
-            textSize = 12f
-            color = Color.BLACK
-            isFakeBoldText = true
-            isAntiAlias = true
-        }
-        val successPaint = Paint().apply {
-            textSize = 12f
-            color = Color.parseColor("#2E7D32") // Verde éxito
-            isFakeBoldText = true
-            isAntiAlias = true
-        }
-        val fileListPaint = Paint().apply {
-            textSize = 10f
-            color = Color.DKGRAY
-            isAntiAlias = true
-        }
+        val titlePaint = Paint().apply { textSize = 24f; isFakeBoldText = true; color = Color.parseColor("#3F51B5"); isAntiAlias = true }
+        val subtitlePaint = Paint().apply { textSize = 14f; isFakeBoldText = true; color = Color.BLACK; isAntiAlias = true }
+        val headerSectionPaint = Paint().apply { textSize = 16f; isFakeBoldText = true; color = Color.parseColor("#444444"); isAntiAlias = true }
+        val labelPaint = Paint().apply { textSize = 12f; color = Color.parseColor("#666666"); isAntiAlias = true }
+        val valuePaint = Paint().apply { textSize = 12f; color = Color.BLACK; isAntiAlias = true }
+        val valueBoldPaint = Paint().apply { textSize = 12f; color = Color.BLACK; isFakeBoldText = true; isAntiAlias = true }
+        val successPaint = Paint().apply { textSize = 12f; color = Color.parseColor("#2E7D32"); isFakeBoldText = true; isAntiAlias = true }
+        val smallPaint = Paint().apply { textSize = 10f; color = Color.DKGRAY; isAntiAlias = true }
+        val fileListPaint = Paint().apply { textSize = 10f; color = Color.DKGRAY; isAntiAlias = true }
         val linePaint = Paint().apply { color = Color.LTGRAY; strokeWidth = 1f }
         val blueLinePaint = Paint().apply { color = Color.parseColor("#3F51B5"); strokeWidth = 2f }
 
@@ -142,8 +114,20 @@ object PdfGenerator {
         y += 20f
 
         y = drawRow(canvas, "Modelo:", Build.MODEL, margin, rightMargin, y, labelPaint, valuePaint)
-        y = drawRow(canvas, "Serial:", Build.SERIAL ?: "Desconocido", margin, rightMargin, y, labelPaint, valuePaint)
-        y = drawRow(canvas, "Capacidad:", getTotalInternalMemorySize(), margin, rightMargin, y, labelPaint, valuePaint)
+
+        // Serial
+        val deviceId = getDeviceUniqueId(context)
+        y = drawRow(canvas, "ID Dispositivo (Serial):", deviceId, margin, rightMargin, y, labelPaint, valuePaint)
+
+        y = drawRow(canvas, "Fabricante:", Build.MANUFACTURER, margin, rightMargin, y, labelPaint, valuePaint)
+        y = drawRow(canvas, "Plataforma:", "Android ${Build.VERSION.RELEASE}", margin, rightMargin, y, labelPaint, valuePaint)
+
+        // Información de almacenamiento
+        val storageInfo = getStorageDetails()
+        y = drawRow(canvas, "Capacidad Total:", storageInfo.total, margin, rightMargin, y, labelPaint, valuePaint)
+        y = drawRow(canvas, "Espacio Disponible:", storageInfo.available, margin, rightMargin, y, labelPaint, valuePaint)
+        // Mostramos el espacio liberado en verde
+        y = drawRow(canvas, "Espacio Liberado:", formatFileSize(freedBytes), margin, rightMargin, y, labelPaint, successPaint)
         y += 20f
 
         // 4. RESULTADOS
@@ -152,20 +136,30 @@ object PdfGenerator {
         canvas.drawLine(margin, y, rightMargin, y, linePaint)
         y += 20f
 
-        val fullDateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
-        val durationSeconds = (endTime - startTime) / 1000
-        val durationFormatted = String.format(Locale.getDefault(), "%02d:%02d:%02d", durationSeconds / 3600, (durationSeconds % 3600) / 60, durationSeconds % 60)
+        val fullDateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSS", Locale.getDefault())
+
+        // Cálculo preciso de duración
+        val durationMillis = (endTime - startTime)
+        val hours = TimeUnit.MILLISECONDS.toHours(durationMillis)
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis) % 60
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis) % 60
+        val millis = durationMillis % 1000
+        val durationFormatted = String.format(Locale.getDefault(), "%02d:%02d:%02d.%03d", hours, minutes, seconds, millis)
 
         y = drawRow(canvas, "Estado Final:", "COMPLETADO", margin, rightMargin, y, labelPaint, successPaint)
-        y = drawRow(canvas, "Inicio:", fullDateFormat.format(Date(startTime)), margin, rightMargin, y, labelPaint, valuePaint)
-        y = drawRow(canvas, "Duración:", durationFormatted, margin, rightMargin, y, labelPaint, valuePaint)
         y = drawRow(canvas, "Items Eliminados:", "$deletedCount archivos/carpetas", margin, rightMargin, y, labelPaint, valuePaint)
-        y = drawRow(canvas, "Errores:", "0 Errores", margin, rightMargin, y, labelPaint, successPaint)
-        y = drawRow(canvas, "Resultado:", "Borrado Exitoso", margin, rightMargin, y, labelPaint, successPaint)
+        y = drawRow(canvas, "Inicio:", fullDateFormat.format(Date(startTime)), margin, rightMargin, y, labelPaint, valuePaint)
+        y = drawRow(canvas, "Fin:", fullDateFormat.format(Date(endTime)), margin, rightMargin, y, labelPaint, valuePaint)
+        y = drawRow(canvas, "Duración:", durationFormatted, margin, rightMargin, y, labelPaint, valueBoldPaint)
+
+        y += 10f
+        // Timestamps en crudo (Long)
+        y = drawRow(canvas, "TS Inicio (ms):", "$startTime", margin, rightMargin, y, labelPaint, smallPaint)
+        y = drawRow(canvas, "TS Fin (ms):", "$endTime", margin, rightMargin, y, labelPaint, smallPaint)
 
         y += 30f
 
-        // --- PASOS TÉCNICOS (Simulación) ---
+        // PASOS TÉCNICOS
         canvas.drawText("Pasos de Ejecución:", margin, y, valueBoldPaint)
         y += 20f
         val passes = getPassesList(methodName)
@@ -178,7 +172,7 @@ object PdfGenerator {
         canvas.drawLine(margin, y, rightMargin, y, linePaint)
         y += 30f
 
-        // --- LISTA DE ARCHIVOS BORRADOS (Con Paginación) ---
+        // LISTA DE ARCHIVOS
         canvas.drawText("Detalle de Archivos Eliminados:", margin, y, headerSectionPaint)
         y += 20f
 
@@ -187,21 +181,16 @@ object PdfGenerator {
             y += 15f
         } else {
             for (fileName in deletedFiles) {
-                // Verificar si se acaba la página
-                if (y > pageHeight - margin - 40f) { // Dejamos espacio para el footer
-                    // Pie de página antes de cambiar
+                // Control de salto de página
+                if (y > pageHeight - margin - 40f) {
                     drawFooter(canvas, pageWidth.toFloat(), y + 20f)
                     pdfDocument.finishPage(page)
-
-                    // Nueva página
                     page = startNewPage()
                     canvas = page.canvas
                     y = margin + 20f
-                    canvas.drawText("Continuación de archivos eliminados...", margin, y, headerSectionPaint)
+                    canvas.drawText("Continuación...", margin, y, headerSectionPaint)
                     y += 25f
                 }
-
-                // Acortar nombre si es muy largo
                 val cleanName = if (fileName.length > 90) fileName.take(87) + "..." else fileName
                 canvas.drawText("• $cleanName", margin, y, fileListPaint)
                 y += 12f
@@ -210,7 +199,6 @@ object PdfGenerator {
 
         // Footer final
         y += 20f
-        // Asegurar que el footer final cabe
         if (y > pageHeight - margin) {
             drawFooter(canvas, pageWidth.toFloat(), pageHeight - margin)
             pdfDocument.finishPage(page)
@@ -221,44 +209,46 @@ object PdfGenerator {
         drawFooter(canvas, pageWidth.toFloat(), y)
         pdfDocument.finishPage(page)
 
-        // --- GUARDADO DEL ARCHIVO ---
-
+        // GUARDADO
         val fileName = "Certificado_Nullum_${System.currentTimeMillis()}.pdf"
-
-        // 1. Intentar guardar en carpeta pública "Documents/Reportes_Nullum"
         val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
         val reportsDir = File(documentsDir, "Reportes_Nullum")
 
-        // Crear carpeta si no existe
         if (!reportsDir.exists()) {
             val created = reportsDir.mkdirs()
-            if (!created) {
-                // Si falla (Android 11+ a veces restringe mkdirs en public), vamos al privado
-                return saveToPrivateStorage(context, pdfDocument, fileName)
-            }
+            if (!created) return saveToPrivateStorage(context, pdfDocument, fileName)
         }
 
         val file = File(reportsDir, fileName)
 
         return try {
             pdfDocument.writeTo(FileOutputStream(file))
-
-            // 2. Avisar al sistema (Media Scanner) para que aparezca en apps de archivos
-            MediaScannerConnection.scanFile(
-                context,
-                arrayOf(file.absolutePath),
-                arrayOf("application/pdf"),
-                null
-            )
-
+            MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), arrayOf("application/pdf"), null)
             Toast.makeText(context, "Guardado en: Documentos/Reportes_Nullum", Toast.LENGTH_LONG).show()
             file
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback a privado si falla público
             saveToPrivateStorage(context, pdfDocument, fileName)
         } finally {
             pdfDocument.close()
+        }
+    }
+
+    // --- HELPERS ---
+
+    private fun getDeviceUniqueId(context: Context): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                try {
+                    val serial = Build.getSerial()
+                    if (serial != Build.UNKNOWN) return serial
+                } catch (e: SecurityException) {}
+            }
+        }
+        return try {
+            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "Desconocido"
+        } catch (e: Exception) {
+            "Desconocido"
         }
     }
 
@@ -270,12 +260,9 @@ object PdfGenerator {
             file
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error guardando PDF: ${e.message}", Toast.LENGTH_LONG).show()
             null
         }
     }
-
-    // --- HELPERS DE DIBUJO ---
 
     private fun drawFooter(canvas: android.graphics.Canvas, pageWidth: Float, y: Float) {
         val footerPaint = Paint().apply { textSize = 10f; color = Color.GRAY; textAlign = Paint.Align.CENTER; isAntiAlias = true }
@@ -301,7 +288,6 @@ object PdfGenerator {
         val sealPaint = Paint().apply { color = Color.parseColor("#DAA520"); style = Paint.Style.STROKE; strokeWidth = 2f; isAntiAlias = true }
         val sealFill = Paint().apply { color = Color.parseColor("#FFF8E1"); isAntiAlias = true }
         val textPaint = Paint().apply { color = Color.parseColor("#B8860B"); textSize = 8f; isFakeBoldText = true; textAlign = Paint.Align.CENTER; isAntiAlias = true }
-
         canvas.drawCircle(x, y, 25f, sealFill)
         canvas.drawCircle(x, y, 25f, sealPaint)
         canvas.drawText("100%", x, y - 2f, textPaint)
@@ -331,10 +317,20 @@ object PdfGenerator {
         }
     }
 
-    private fun getTotalInternalMemorySize(): String {
+    data class StorageInfo(val total: String, val available: String)
+
+    private fun getStorageDetails(): StorageInfo {
         val path = Environment.getDataDirectory()
         val stat = StatFs(path.path)
-        val bytes = stat.blockCountLong * stat.blockSizeLong
-        return String.format(Locale.getDefault(), "%.2f GB", bytes.toDouble() / (1024 * 1024 * 1024))
+        val totalBytes = stat.blockCountLong * stat.blockSizeLong
+        val availableBytes = stat.availableBlocksLong * stat.blockSizeLong
+        return StorageInfo(formatFileSize(totalBytes), formatFileSize(availableBytes))
+    }
+
+    private fun formatFileSize(bytes: Long): String {
+        if (bytes <= 0) return "0 B"
+        val units = arrayOf("B", "KB", "MB", "GB", "TB")
+        val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt()
+        return String.format(Locale.getDefault(), "%.2f %s", bytes / 1024.0.pow(digitGroups.toDouble()), units[digitGroups])
     }
 }

@@ -23,6 +23,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Estado unificado de la UI.
+ */
+
 @HiltViewModel
 class WipeViewModel @Inject constructor(
     private val application: Application,
@@ -87,7 +91,6 @@ class WipeViewModel @Inject constructor(
 
     fun executeWipe() {
         val folders = _uiState.value.selectedFolders
-        // Si no hay método seleccionado, usamos NIST por defecto
         val method = _uiState.value.selectedMethod ?: WipeMethod.NIST_SP_800_88
 
         if (folders.isEmpty()) return
@@ -101,6 +104,7 @@ class WipeViewModel @Inject constructor(
                 wipeFinished = false,
                 deletedCount = 0,
                 deletedFilesList = emptyList(),
+                freedBytes = 0L,
                 wipeStartTime = startTime,
                 wipeEndTime = 0
             )
@@ -108,15 +112,18 @@ class WipeViewModel @Inject constructor(
 
         viewModelScope.launch {
             val allDeletedFiles = ArrayList<String>()
+            var totalBytesAccumulated = 0L
 
             try {
                 for (folderUri in folders) {
                     val folderName = getFileNameFromUri(folderUri)
                     _uiState.update { it.copy(currentWipingFile = folderName) }
 
-                    // El caso de uso retorna la LISTA de archivos borrados en esa carpeta
-                    val filesFromThisFolder = performWipeUseCase(folderUri, method, folderName)
-                    allDeletedFiles.addAll(filesFromThisFolder)
+                    // El caso de uso retorna WipeResult con la lista y el peso liberado
+                    val result = performWipeUseCase(folderUri, method, folderName)
+
+                    allDeletedFiles.addAll(result.deletedFiles)
+                    totalBytesAccumulated += result.freedBytes
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -128,10 +135,11 @@ class WipeViewModel @Inject constructor(
                     it.copy(
                         isWiping = false,
                         currentWipingFile = "",
-                        selectedFolders = emptyList(), // Limpiamos selección para evitar re-borrado
+                        selectedFolders = emptyList(), // Limpiamos selección
                         wipeFinished = true,
                         deletedCount = allDeletedFiles.size,
-                        deletedFilesList = allDeletedFiles,
+                        deletedFilesList = allDeletedFiles, // Lista completa para el PDF
+                        freedBytes = totalBytesAccumulated, // Peso total real
                         wipeEndTime = endTime
                     )
                 }
@@ -158,7 +166,8 @@ class WipeViewModel @Inject constructor(
             startTime = safeStart,
             endTime = safeEnd,
             deletedCount = state.deletedCount,
-            deletedFiles = state.deletedFilesList // Pasamos la lista detallada
+            deletedFiles = state.deletedFilesList, // Pasamos la lista detallada
+            freedBytes = state.freedBytes          // Pasamos el peso total liberado
         )
 
         // 2. Subir al FTP si existe configuración y el archivo se creó
@@ -230,8 +239,8 @@ class WipeViewModel @Inject constructor(
 
     fun saveFtpConfig() {
         val s = _uiState.value
-//        val portInt = s.ftpPort.toIntOrNull() ?: 21
-        FtpPrefs.saveConfig(application, s.ftpHost, s.ftpUser, s.ftpPass)
+        val portInt = s.ftpPort.toIntOrNull() ?: 21
+        FtpPrefs.saveConfig(application, s.ftpHost, portInt, s.ftpUser, s.ftpPass)
         Toast.makeText(application, "Configuración FTP Guardada", Toast.LENGTH_SHORT).show()
     }
 
