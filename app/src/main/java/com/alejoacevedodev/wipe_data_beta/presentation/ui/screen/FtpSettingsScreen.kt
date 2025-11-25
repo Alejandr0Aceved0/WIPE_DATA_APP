@@ -28,7 +28,8 @@ import com.alejoacevedodev.wipe_data_beta.presentation.viewmodel.WipeViewModel
 @Composable
 fun FtpSettingsScreen(
     viewModel: WipeViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateHome: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
@@ -36,7 +37,9 @@ fun FtpSettingsScreen(
     val HeaderBlue = Color(0xFF2B4C6F)
     val DarkBlueButton = Color(0xFF2B4C6F)
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.White)) {
         Column(modifier = Modifier.fillMaxSize()) {
 
             // 1. Encabezado con corrección de Status Bar
@@ -55,12 +58,18 @@ fun FtpSettingsScreen(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = "Salir",
-                    tint = Color.White,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                )
+
+                IconButton(
+                    onClick = { onNavigateHome }
+                ) {
+
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = "Salir",
+                        tint = Color.White,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                }
             }
 
             // 2. Contenido

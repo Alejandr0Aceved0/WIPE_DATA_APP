@@ -85,7 +85,7 @@ fun ReportScreen(
                 )
                 // Botón de Salir
                 IconButton(
-                    onClick = onNavigateHome,
+                    onClick = { onNavigateHome() },
                     modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
                     Icon(

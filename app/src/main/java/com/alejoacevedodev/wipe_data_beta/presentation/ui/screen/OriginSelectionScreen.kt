@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,7 +32,8 @@ import com.alejoacevedodev.wipe_data_beta.presentation.viewmodel.WipeViewModel
 fun OriginSelectionScreen(
     viewModel: WipeViewModel,
     onNavigateToMethods: () -> Unit,
-    onNavigateHome: () -> Unit
+    onNavigateHome: () -> Unit,
+    onConfigureFtp: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     val HeaderBlue = Color(0xFF2B4C6F)
@@ -55,22 +57,50 @@ fun OriginSelectionScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(HeaderBlue) // 2. Primero: Pintamos azul (cubre el área del status bar)
-                .statusBarsPadding()    // 3. Segundo: Bajamos el contenido seguro para no taparlo con la hora/batería
-                .height(56.dp)          // 4. Tercero: Definimos la altura del contenido del header
-                .padding(horizontal = 16.dp)
-                .clickable {
-                    onNavigateHome
-                },
+                .background(HeaderBlue)
+                .statusBarsPadding()
+                .height(56.dp)
+                .padding(horizontal = 16.dp),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text("NULLUM Lite", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                contentDescription = "Salir",
-                tint = Color.White,
-                modifier = Modifier.align(Alignment.CenterEnd)
+            // 1. Título a la izquierda
+            Text(
+                text = "NULLUM Lite",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
             )
+
+            // 2. Fila para los iconos a la derecha
+            Row(
+                modifier = Modifier.align(Alignment.CenterEnd), // Alineamos toda la fila a la derecha
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Botón Configuración
+                IconButton(
+                    onClick = onConfigureFtp
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = "Configurar FTP",
+                        tint = Color.White // Cambiado a blanco para contraste con azul
+                    )
+                }
+
+                // Espacio entre los botones (Opcional, IconButton ya tiene padding interno)
+                Spacer(modifier = Modifier.width(4.dp))
+
+                // Botón Salir (Envuelto en IconButton para que sea clickeable y consistente)
+                IconButton(
+                    onClick = { onNavigateHome() }
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = "Salir",
+                        tint = Color.White
+                    )
+                }
+            }
         }
 
         // Contenido Principal

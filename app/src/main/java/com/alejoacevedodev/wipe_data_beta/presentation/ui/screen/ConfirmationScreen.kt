@@ -57,10 +57,7 @@ fun ConfirmationScreen(
                     .background(HeaderBlue) // Fondo azul primero (cubre status bar)
                     .statusBarsPadding()    // Empuja el contenido hacia abajo
                     .height(56.dp)
-                    .padding(horizontal = 16.dp)
-                    .clickable {
-                        onNavigateHome
-                    },
+                    .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
@@ -69,12 +66,17 @@ fun ConfirmationScreen(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Icon(
-                    Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = "Salir",
-                    tint = Color.White,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                )
+
+                IconButton(
+                    onClick = { onNavigateHome }
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = "Salir",
+                        tint = Color.White,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                }
             }
 
             // Contenido

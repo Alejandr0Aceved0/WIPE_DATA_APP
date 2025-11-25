@@ -35,9 +35,6 @@ fun AppNavigation() {
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate("origins")
-                },
-                onConfigureFtp = {
-                    navController.navigate("ftp_settings")
                 }
             )
         }
@@ -48,7 +45,8 @@ fun AppNavigation() {
                 viewModel = sharedViewModel,
                 onNavigateBack = {
                     navController.popBackStack()
-                }
+                },
+                onNavigateHome = { navigateToLogin() },
             )
         }
 
@@ -59,7 +57,10 @@ fun AppNavigation() {
                 onNavigateToMethods = {
                     navController.navigate("methods")
                 },
-                onNavigateHome = { navigateToLogin() } // Salir al Login
+                onNavigateHome = { navigateToLogin() },
+                onConfigureFtp = {
+                    navController.navigate("ftp_settings")
+                }
             )
         }
 
