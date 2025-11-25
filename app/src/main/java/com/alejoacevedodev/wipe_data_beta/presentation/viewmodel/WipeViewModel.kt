@@ -33,59 +33,33 @@ class WipeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(WipeUiState())
     val uiState = _uiState.asStateFlow()
 
+    // Flujo de logs para historial (opcional)
     val logs = getLogsUseCase()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
+        // Cargar configuración FTP al iniciar
         loadFtpConfig()
     }
 
-    // --- CONFIGURACIÓN FTP ---
-
-    private fun loadFtpConfig() {
-        val host = FtpPrefs.getHost(application)
-        val port = FtpPrefs.getPort(application)
-        val user = FtpPrefs.getUser(application)
-        val pass = FtpPrefs.getPass(application)
-
-        _uiState.update {
-            it.copy(
-                ftpHost = host,
-                ftpPort = port.toString(),
-                ftpUser = user,
-                ftpPass = pass
-            )
-        }
-    }
-
-    fun updateFtpHost(value: String) { _uiState.update { it.copy(ftpHost = value) } }
-    // Filtramos para que solo sean números
-    fun updateFtpPort(value: String) {
-        if (value.all { it.isDigit() }) {
-            _uiState.update { it.copy(ftpPort = value) }
-        }
-    }
-    fun updateFtpUser(value: String) { _uiState.update { it.copy(ftpUser = value) } }
-    fun updateFtpPass(value: String) { _uiState.update { it.copy(ftpPass = value) } }
-
-    fun saveFtpConfig() {
-        val s = _uiState.value
-        // Convertir puerto a Int, default 21 si está vacío
-        val portInt = s.ftpPort.toIntOrNull() ?: 21
-
-        FtpPrefs.saveConfig(application, s.ftpHost, s.ftpUser, s.ftpPass)
-        Toast.makeText(application, "Configuración FTP Guardada", Toast.LENGTH_SHORT).show()
-    }
-
-    // --- LÓGICA DE BORRADO (EXISTENTE) ---
+    // ========================================================================
+    // 1. GESTIÓN DE CARPETAS (SAF)
+    // ========================================================================
 
     fun onFolderSelected(uri: Uri) {
         val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         try {
             application.contentResolver.takePersistableUriPermission(uri, flag)
-        } catch (e: SecurityException) { e.printStackTrace() }
-        _uiState.update { s ->
-            if (uri !in s.selectedFolders) s.copy(selectedFolders = s.selectedFolders + uri) else s
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+
+        _uiState.update { currentState ->
+            if (uri !in currentState.selectedFolders) {
+                currentState.copy(selectedFolders = currentState.selectedFolders + uri)
+            } else {
+                currentState
+            }
         }
     }
 
@@ -93,55 +67,101 @@ class WipeViewModel @Inject constructor(
         val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         try {
             application.contentResolver.releasePersistableUriPermission(uri, flag)
-        } catch (e: SecurityException) { e.printStackTrace() }
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
         _uiState.update { it.copy(selectedFolders = it.selectedFolders - uri) }
     }
+
+    // ========================================================================
+    // 2. SELECCIÓN DE MÉTODO
+    // ========================================================================
 
     fun selectMethod(method: WipeMethod) {
         _uiState.update { it.copy(selectedMethod = method) }
     }
 
+    // ========================================================================
+    // 3. EJECUCIÓN DEL BORRADO
+    // ========================================================================
+
     fun executeWipe() {
         val folders = _uiState.value.selectedFolders
+        // Si no hay método seleccionado, usamos NIST por defecto
         val method = _uiState.value.selectedMethod ?: WipeMethod.NIST_SP_800_88
+
         if (folders.isEmpty()) return
 
         val startTime = System.currentTimeMillis()
-        _uiState.update { it.copy(isWiping = true, wipeFinished = false, deletedCount = 0, wipeStartTime = startTime) }
+
+        // Reseteamos contadores e iniciamos estado de carga
+        _uiState.update {
+            it.copy(
+                isWiping = true,
+                wipeFinished = false,
+                deletedCount = 0,
+                deletedFilesList = emptyList(),
+                wipeStartTime = startTime,
+                wipeEndTime = 0
+            )
+        }
 
         viewModelScope.launch {
-            var totalItemsDeleted = 0
+            val allDeletedFiles = ArrayList<String>()
+
             try {
                 for (folderUri in folders) {
                     val folderName = getFileNameFromUri(folderUri)
                     _uiState.update { it.copy(currentWipingFile = folderName) }
-                    totalItemsDeleted += performWipeUseCase(folderUri, method, folderName)
+
+                    // El caso de uso retorna la LISTA de archivos borrados en esa carpeta
+                    val filesFromThisFolder = performWipeUseCase(folderUri, method, folderName)
+                    allDeletedFiles.addAll(filesFromThisFolder)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
                 val endTime = System.currentTimeMillis()
+
+                // Actualizamos estado final con resultados
                 _uiState.update {
-                    it.copy(isWiping = false, currentWipingFile = "", selectedFolders = emptyList(), wipeFinished = true, deletedCount = totalItemsDeleted, wipeEndTime = endTime)
+                    it.copy(
+                        isWiping = false,
+                        currentWipingFile = "",
+                        selectedFolders = emptyList(), // Limpiamos selección para evitar re-borrado
+                        wipeFinished = true,
+                        deletedCount = allDeletedFiles.size,
+                        deletedFilesList = allDeletedFiles,
+                        wipeEndTime = endTime
+                    )
                 }
             }
         }
     }
 
+    // ========================================================================
+    // 4. GENERACIÓN DE PDF Y SUBIDA FTP
+    // ========================================================================
+
     fun generatePdf() {
         val state = _uiState.value
-        val minValidTime = 1704067200000L
+
+        // Validación de seguridad para fechas
+        val minValidTime = 1704067200000L // Enero 1, 2024
         val safeStart = if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
         val safeEnd = if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
 
+        // 1. Generar el PDF
         val pdfFile = PdfGenerator.generateReportPdf(
             context = application,
             methodName = state.selectedMethod?.name ?: "NIST",
             startTime = safeStart,
             endTime = safeEnd,
-            deletedCount = state.deletedCount
+            deletedCount = state.deletedCount,
+            deletedFiles = state.deletedFilesList // Pasamos la lista detallada
         )
 
+        // 2. Subir al FTP si existe configuración y el archivo se creó
         if (pdfFile != null && pdfFile.exists()) {
             if (state.ftpHost.isNotEmpty() && state.ftpUser.isNotEmpty()) {
                 viewModelScope.launch {
@@ -154,7 +174,7 @@ class WipeViewModel @Inject constructor(
                         host = state.ftpHost,
                         user = state.ftpUser,
                         pass = state.ftpPass,
-                        port = portInt // Pasamos el puerto dinámico
+                        port = portInt
                     )
 
                     if (uploaded) {
@@ -169,14 +189,64 @@ class WipeViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Resetea solo la bandera de finalización para permitir nueva navegación.
+     */
     fun resetWipeStatus() {
-        _uiState.update { it.copy(wipeFinished = false, deletedCount = 0) }
+        _uiState.update { it.copy(wipeFinished = false) }
     }
 
+    // ========================================================================
+    // 5. CONFIGURACIÓN FTP
+    // ========================================================================
+
+    private fun loadFtpConfig() {
+        val host = FtpPrefs.getHost(application)
+        val user = FtpPrefs.getUser(application)
+        val pass = FtpPrefs.getPass(application)
+        val port = FtpPrefs.getPort(application)
+
+        _uiState.update {
+            it.copy(
+                ftpHost = host,
+                ftpPort = port.toString(),
+                ftpUser = user,
+                ftpPass = pass
+            )
+        }
+    }
+
+    fun updateFtpHost(value: String) { _uiState.update { it.copy(ftpHost = value) } }
+
+    fun updateFtpPort(value: String) {
+        // Solo permitir números
+        if (value.all { it.isDigit() }) {
+            _uiState.update { it.copy(ftpPort = value) }
+        }
+    }
+
+    fun updateFtpUser(value: String) { _uiState.update { it.copy(ftpUser = value) } }
+    fun updateFtpPass(value: String) { _uiState.update { it.copy(ftpPass = value) } }
+
+    fun saveFtpConfig() {
+        val s = _uiState.value
+//        val portInt = s.ftpPort.toIntOrNull() ?: 21
+        FtpPrefs.saveConfig(application, s.ftpHost, s.ftpUser, s.ftpPass)
+        Toast.makeText(application, "Configuración FTP Guardada", Toast.LENGTH_SHORT).show()
+    }
+
+    // ========================================================================
+    // HELPERS
+    // ========================================================================
+
     private fun getFileNameFromUri(uri: Uri): String {
+        // Manejo seguro de Tree URIs
         val queryUri = if (DocumentsContract.isTreeUri(uri)) {
             DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
-        } else { uri }
+        } else {
+            uri
+        }
+
         return try {
             application.contentResolver.query(queryUri, null, null, null, null)?.use { c ->
                 if (c.moveToFirst()) {
@@ -184,6 +254,8 @@ class WipeViewModel @Inject constructor(
                     if (idx != -1) c.getString(idx) else null
                 } else null
             } ?: uri.lastPathSegment ?: "Desconocido"
-        } catch (e: Exception) { uri.lastPathSegment ?: "Desconocido" }
+        } catch (e: Exception) {
+            uri.lastPathSegment ?: "Desconocido"
+        }
     }
 }
