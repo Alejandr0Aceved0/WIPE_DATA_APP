@@ -2,6 +2,7 @@ package com.alejoacevedodev.wipe_data_beta.presentation.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,7 +22,8 @@ import com.alejoacevedodev.wipe_data_beta.presentation.viewmodel.WipeViewModel
 fun ConfirmationScreen(
     viewModel: WipeViewModel,
     onNavigateBack: () -> Unit,
-    onProcessFinished: () -> Unit
+    onProcessFinished: () -> Unit,
+    onNavigateHome: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -40,20 +42,25 @@ fun ConfirmationScreen(
         }
     }
 
+    // 1. Quitamos el padding del contenedor raíz
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(WindowInsets.statusBars.asPaddingValues())
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
+
+            // 2. Header con corrección de Status Bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(HeaderBlue) // Fondo azul primero (cubre status bar)
+                    .statusBarsPadding()    // Empuja el contenido hacia abajo
                     .height(56.dp)
-                    .background(HeaderBlue)
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
+                    .clickable {
+                        onNavigateHome
+                    },
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
@@ -70,6 +77,7 @@ fun ConfirmationScreen(
                 )
             }
 
+            // Contenido
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -125,7 +133,7 @@ fun ConfirmationScreen(
             }
         }
 
-        // Indicador de Carga
+        // Indicador de Carga (Overlay)
         if (state.isWiping) {
             Box(
                 modifier = Modifier

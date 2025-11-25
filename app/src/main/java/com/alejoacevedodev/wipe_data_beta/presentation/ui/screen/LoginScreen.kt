@@ -1,5 +1,6 @@
 package com.alejoacevedodev.wipe_data_beta.presentation.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -22,6 +24,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun LoginScreen(
@@ -31,6 +36,9 @@ fun LoginScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Necesitamos el contexto para mostrar el Toast de error
+    val context = LocalContext.current
 
     val DarkBlueButton = Color(0xFF2B4C6F)
 
@@ -142,9 +150,23 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Botón Ingresar
+            // Botón Ingresar con VALIDACIÓN
             Button(
-                onClick = onLoginSuccess,
+                onClick = {
+                    // 1. Obtener la fecha actual en formato dd/MM/yyyy
+                    val currentDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+
+                    // 2. Construir las credenciales esperadas
+                    val expectedUser = "Prueba2025"
+                    val expectedPass = "Prueba2025.*$currentDate"
+
+                    // 3. Validar
+                    if (username == expectedUser && password == expectedPass) {
+                        onLoginSuccess()
+                    } else {
+                        Toast.makeText(context, "Credenciales incorrectas. Verifique usuario y/o contraseña.", Toast.LENGTH_LONG).show()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),

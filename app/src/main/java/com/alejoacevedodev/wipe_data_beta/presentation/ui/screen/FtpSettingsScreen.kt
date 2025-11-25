@@ -6,6 +6,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -37,16 +39,22 @@ fun FtpSettingsScreen(
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // 1. Encabezado
+            // 1. Encabezado con corrección de Status Bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .background(HeaderBlue)
+                    .background(HeaderBlue) // 1. Fondo azul (cubre status bar)
+                    .statusBarsPadding()    // 2. Padding para bajar el contenido
+                    .height(56.dp)          // 3. Altura del contenido
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text("NULLUM Lite", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "NULLUM Lite",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                     contentDescription = "Salir",
@@ -142,7 +150,7 @@ fun FtpSettingsScreen(
                         unfocusedBorderColor = Color.LightGray
                     ),
                     trailingIcon = {
-                        val image = if (passwordVisible) Icons.Filled.Person else Icons.Filled.Person
+                        val image = if (passwordVisible) Icons.Filled.Check else Icons.Filled.CheckCircle
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
                         }

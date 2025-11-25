@@ -3,31 +3,14 @@ package com.alejoacevedodev.wipe_data_beta.presentation.ui.screen
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,24 +33,21 @@ fun ReportScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // Definición de Colores (Basados en tu diseño)
+    // Definición de Colores
     val HeaderBlue = Color(0xFF2B4C6F)
     val SuccessGreen = Color(0xFF4CAF50)
     val BackgroundColor = Color.White
 
     // --- LÓGICA DE FECHAS Y DURACIÓN ---
-    // Usamos una fecha base de seguridad (Enero 2024) para evitar mostrar "1969" si algo falló
     val minValidTime = 1704067200000L
     val startTime =
         if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
     val endTime =
         if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
 
-    // Formatear Fecha de Inicio (ej. 20/11/2025 14:30:00)
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
     val startDateStr = dateFormat.format(Date(startTime))
 
-    // Calcular Duración
     val durationMillis = if (endTime >= startTime) endTime - startTime else 0
     val durationSeconds = durationMillis / 1000
     val durationFormatted = String.format(
@@ -78,21 +58,22 @@ fun ReportScreen(
         durationSeconds % 60
     )
 
+    // 1. Quitamos el padding global del contenedor raíz
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
-            .padding(WindowInsets.statusBars.asPaddingValues())
     ) {
 
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // 1. ENCABEZADO
+            // 2. ENCABEZADO (Corrección de Status Bar)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .background(HeaderBlue)
+                    .background(HeaderBlue) // A. Fondo azul primero
+                    .statusBarsPadding()    // B. Empuja el contenido hacia abajo (respetando notch/hora)
+                    .height(56.dp)          // C. Altura del contenido del header
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -102,7 +83,7 @@ fun ReportScreen(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                // Botón de Salir (Icono puerta)
+                // Botón de Salir
                 IconButton(
                     onClick = onNavigateHome,
                     modifier = Modifier.align(Alignment.CenterEnd)
@@ -119,7 +100,7 @@ fun ReportScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()) // Permite scroll si el contenido es largo
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp)
             ) {
 
@@ -168,7 +149,6 @@ fun ReportScreen(
                 // -- SECCIÓN: RESULTADOS --
                 ReportSectionTitle("Resultados")
                 ReportItem("Borrado:", "Completo")
-                // Aquí mostramos el conteo real que calculamos en el ViewModel
                 ReportItem("Items Eliminados:", "${state.deletedCount}")
                 ReportItem("Inicio:", startDateStr)
                 ReportItem("Duración:", durationFormatted)
@@ -213,7 +193,6 @@ fun ReportScreen(
                     fontSize = 12.sp,
                     modifier = Modifier.fillMaxWidth()
                 )
-                // Espacio extra al final para asegurar que se vea todo en scroll
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -250,7 +229,7 @@ fun ReportItem(label: String, value: String) {
             text = value,
             fontSize = 14.sp,
             color = Color.DarkGray,
-            modifier = Modifier.weight(1f) // Permite que el valor ocupe el resto de la línea
+            modifier = Modifier.weight(1f)
         )
     }
 }

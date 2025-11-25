@@ -13,14 +13,20 @@ import com.alejoacevedodev.wipe_data_beta.presentation.ui.screen.ReportScreen
 import com.alejoacevedodev.wipe_data_beta.presentation.ui.screen.WipeMethodScreen
 import com.alejoacevedodev.wipe_data_beta.presentation.viewmodel.WipeViewModel
 
-/**
- * Configuración de navegación entre pantallas.
- * Flujo: Login -> Orígenes -> Métodos -> Confirmación -> Reporte
- */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    // ViewModel compartido para mantener el estado (carpetas, método) durante el flujo
     val sharedViewModel: WipeViewModel = hiltViewModel()
+
+    // Función helper para cerrar sesión y volver al login
+    val navigateToLogin = {
+        sharedViewModel.resetWipeStatus() // Limpiamos estado
+        navController.navigate("login") {
+            // Limpiamos toda la pila de navegación hasta el inicio
+            popUpTo(0) { inclusive = true }
+        }
+    }
 
     NavHost(navController = navController, startDestination = "login") {
 
@@ -52,10 +58,12 @@ fun AppNavigation() {
                 viewModel = sharedViewModel,
                 onNavigateToMethods = {
                     navController.navigate("methods")
-                }
+                },
+                onNavigateHome = { navigateToLogin() } // Salir al Login
             )
         }
 
+        // 4. SELECCIÓN DE MÉTODO
         composable("methods") {
             WipeMethodScreen(
                 viewModel = sharedViewModel,
@@ -64,7 +72,8 @@ fun AppNavigation() {
                 },
                 onMethodSelected = {
                     navController.navigate("confirmation")
-                }
+                },
+                onNavigateHome = { navigateToLogin() } // Salir al Login
             )
         }
 
@@ -76,9 +85,9 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onProcessFinished = {
-                    // Al terminar el borrado, vamos al REPORTE
                     navController.navigate("report")
-                }
+                },
+                onNavigateHome = { navigateToLogin() } // Salir al Login
             )
         }
 
@@ -87,11 +96,9 @@ fun AppNavigation() {
             ReportScreen(
                 viewModel = sharedViewModel,
                 onNavigateHome = {
-                    // Reseteamos el estado para una nueva operación
+                    // En el reporte, "Volver al inicio" significa volver a seleccionar carpetas
+                    // (No necesariamente logout, pero si quieres logout usa navigateToLogin())
                     sharedViewModel.resetWipeStatus()
-
-                    // Volvemos a la pantalla de selección de carpetas (origins)
-                    // y limpiamos el historial de navegación
                     navController.navigate("origins") {
                         popUpTo("origins") { inclusive = true }
                     }
