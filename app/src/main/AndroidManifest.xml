@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.alejoacevedodev.wipe_data_beta">
+    package="com.alejoacevedodev.wipedatabeta">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -17,7 +17,7 @@
 
 
     <application
-        android:name=".WipeDataApp"
+        android:name="com.alejoacevedodev.wipedatabeta.WipeDataApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -30,7 +30,7 @@
         tools:targetApi="34">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.alejoacevedodev.wipedatabeta.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.WIPE_DATA_BETA">

@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.alejoacevedodev.wipe_data_beta"
+    namespace = "com.alejoacevedodev.wipedatabeta"
     compileSdk = 34
 
     defaultConfig {
