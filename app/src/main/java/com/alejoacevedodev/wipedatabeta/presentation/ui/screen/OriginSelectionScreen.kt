@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +40,7 @@ fun OriginSelectionScreen(
     val state by viewModel.uiState.collectAsState()
     val HeaderBlue = Color(0xFF2B4C6F)
     val ButtonGray = Color(0xFFE0E0E0)
+    val context = LocalContext.current
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -123,6 +125,8 @@ fun OriginSelectionScreen(
             OriginCard("Memoria Externa", ButtonGray) { folderPickerLauncher.launch(null) }
             Spacer(modifier = Modifier.height(12.dp))
             OriginCard("Tarjeta SD", ButtonGray) { folderPickerLauncher.launch(null) }
+            Spacer(modifier = Modifier.height(12.dp))
+            OriginCard("MOVER ARCHIVOS", ButtonGray) { viewModel.moveAllDataToMedia(context = context) }
 
             Spacer(modifier = Modifier.height(24.dp))
 

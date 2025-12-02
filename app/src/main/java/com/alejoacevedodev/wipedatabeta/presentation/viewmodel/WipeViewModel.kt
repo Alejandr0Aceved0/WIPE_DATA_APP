@@ -1,6 +1,7 @@
 package com.alejoacevedodev.wipedatabeta.presentation.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import javax.inject.Inject
 
@@ -358,6 +360,66 @@ class WipeViewModel @Inject constructor(
                     Toast.makeText(application, "Error al ejecutar proceso: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
+
+
+    /**
+    * Mueve (mv) el contenido de la carpeta de datos de la aplicación en /Android/data
+    * a una carpeta de destino en el almacenamiento compartido.
+    */
+    fun moveAllDataToMedia(context: Context) {
+        if (!isShizukuPermitted.value) {
+            logAndToast(context, "Permiso de Shizuku no otorgado.", isError = true)
+            return
+        }
+
+        // 🔑 DESGLOSE DEL COMANDO PARA Shizuku.newProcess
+        val sourcePath = "/storage/emulated/0/Android/data/*"
+        val destPath = "/storage/emulated/0/Android/media"
+        val fullShellCommand = "mv $sourcePath $destPath"
+
+// 🔑 CORRECCIÓN CLAVE: Usar sh -c para forzar la expansión del comodín
+        val command = arrayOf(
+            "sh",
+            "-c",
+            fullShellCommand // El comando completo va como un solo argumento
+        )
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Ejecutar el movimiento (mv) con Shizuku.newProcess
+                val process = Shizuku.newProcess(command, null, null)
+                val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText().trim() }
+                val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText().trim() }
+                val exitCode = process.waitFor()
+
+                // 2. Reportar resultado
+                Handler(Looper.getMainLooper()).post {
+                    if (exitCode == 0 && error.isEmpty()) {
+                        Log.i("ShizukuMove", "Comando de movimiento EXITOSO.")
+                        Toast.makeText(context, "Movimiento EXITOSO a Android/media.", Toast.LENGTH_LONG).show()
+                    } else {
+                        val errorMessage = if (error.isNotBlank()) error else "Fallo al mover datos. Código: $exitCode. Output: $output"
+                        Log.e("ShizukuMove", errorMessage)
+                        Toast.makeText(context, "MOVIMIENTO FALLIDO. Ver Logcat.", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                logAndToast(context, "Excepción al ejecutar comando: ${e.message}", isError = true)
+            }
+        }
+    }
+
+    // Función helper para manejar logs y toasts
+    private fun logAndToast(context: Context, message: String, isError: Boolean) {
+        if (isError) {
+            Log.e("ShizukuMove", message)
+        } else {
+            Log.i("ShizukuMove", message)
+        }
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context, message, if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
         }
     }
 }
