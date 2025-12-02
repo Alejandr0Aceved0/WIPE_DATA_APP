@@ -12,7 +12,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.alejoacevedodev.wipe_data_beta"
+        applicationId = "com.alejoacevedodev.wipedatabeta"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -49,6 +49,7 @@ android {
 
     buildFeatures {
         compose = true
+        aidl = true
     }
 }
 
@@ -88,6 +89,10 @@ dependencies {
 
     // --- Material Design 2 (temas) ---
     implementation(libs.material)
+
+    // --- Shizuku ---
+    implementation("dev.rikka.shizuku:api:12.1.0")
+    implementation("dev.rikka.shizuku:provider:12.1.0")
 
     // --- Testing ---
     testImplementation(libs.junit)

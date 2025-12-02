@@ -26,6 +26,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.presentation.viewmodel.WipeViewModel
+import com.alejoacevedodev.wipedatabeta.R
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.ShizukuWipeSection
 
 @Composable
 fun OriginSelectionScreen(
@@ -38,7 +40,6 @@ fun OriginSelectionScreen(
     val HeaderBlue = Color(0xFF2B4C6F)
     val ButtonGray = Color(0xFFE0E0E0)
 
-    // Launcher para abrir el selector de carpetas
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
         onResult = { uri ->
@@ -46,13 +47,12 @@ fun OriginSelectionScreen(
         }
     )
 
-    // 1. Quitamos el padding del contenedor raíz para que el contenido pueda subir hasta el borde superior
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // Header (Corrección de Status Bar)
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,7 +82,7 @@ fun OriginSelectionScreen(
                     Icon(
                         imageVector = Icons.Filled.Settings,
                         contentDescription = "Configurar FTP",
-                        tint = Color.White // Cambiado a blanco para contraste con azul
+                        tint = Color.White
                     )
                 }
 
@@ -148,7 +148,10 @@ fun OriginSelectionScreen(
                     Text("Continuar a Métodos", color = Color.White, fontSize = 16.sp)
                 }
             } else {
+
                 Spacer(modifier = Modifier.weight(1f))
+
+                ShizukuWipeSection(viewModel = viewModel, headerColor = HeaderBlue)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
