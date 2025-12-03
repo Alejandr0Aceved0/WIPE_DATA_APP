@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 import java.io.BufferedReader
-import java.io.File
 import java.io.InputStreamReader
 import javax.inject.Inject
 
@@ -106,10 +105,6 @@ class WipeViewModel @Inject constructor(
         _uiState.update { it.copy(selectedMethod = method) }
     }
 
-    fun setPackageName(packageName: String) {
-        _uiState.update { it.copy(packageName = packageName) }
-    }
-
     // ========================================================================
     // 3. EJECUCIÓN DEL BORRADO
     // ========================================================================
@@ -160,7 +155,7 @@ class WipeViewModel @Inject constructor(
                         currentWipingFile = "",
                         selectedFolders = emptyList(),
                         wipeFinished = true,
-                        deletedCount = allDeletedFiles.size,
+                        deletedCount = it.deletedCount + allDeletedFiles.size,
                         deletedFilesList = allDeletedFiles,
                         freedBytes = totalBytesAccumulated,
                         wipeEndTime = endTime
@@ -213,7 +208,11 @@ class WipeViewModel @Inject constructor(
         }
     }
 
-    fun executeShizukuWipe(packageName: String) {
+    fun executeShizukuWipe() {
+
+        val packages = _uiState.value.packagesToWipe
+        val method = WipeMethod.PM_CLEAR
+
         if (!isShizukuPermitted.value) {
             Toast.makeText(application, "Permiso de Shizuku no otorgado.", Toast.LENGTH_SHORT)
                 .show()
@@ -221,7 +220,26 @@ class WipeViewModel @Inject constructor(
         }
         Toast.makeText(application, "Iniciando limpieza con newProcess...", Toast.LENGTH_LONG)
             .show()
-        executePmClearWithNewProcess(packageName)
+
+
+        _uiState.update {
+            it.copy(
+                isWiping = true,
+                wipeFinished = false
+            )
+        }
+
+        for (packageName in packages) {
+            executePmClearWithNewProcess(packageName)
+        }
+
+        _uiState.update {
+            it.copy(
+                isWiping = false,
+                wipeFinished = true,
+                deletedCount = it.deletedCount + packages.size,
+            )
+        }
     }
 
 
@@ -246,7 +264,9 @@ class WipeViewModel @Inject constructor(
             endTime = safeEnd,
             deletedCount = state.deletedCount,
             deletedFiles = state.deletedFilesList,
-            freedBytes = state.freedBytes
+            freedBytes = state.freedBytes,
+            packageWeights = state.packageWeights,
+            packagesToWipe = state.packagesToWipe
         )
 
         if (pdfFile != null && pdfFile.exists()) {
@@ -390,6 +410,24 @@ class WipeViewModel @Inject constructor(
                             "Limpieza de $packageName ÉXITO.",
                             Toast.LENGTH_LONG
                         ).show()
+
+                        val size =
+                            getPackageSizeInBytes(packageName = packageName)
+
+                        if (size > 0) {
+                            _uiState.update { currentState ->
+
+                                val updatedMap = currentState.packageWeights.toMutableMap()
+
+                                updatedMap[packageName] = size
+                                currentState.copy(
+                                    packageWeights = updatedMap
+                                )
+                            }
+                        } else {
+                            Log.e("Audit", "Error: No se pudo obtener el peso de $packageName.")
+                        }
+
                     } else {
                         Log.e(
                             "ShizukuNewProcess",
@@ -410,6 +448,12 @@ class WipeViewModel @Inject constructor(
                         "Error al ejecutar proceso: ${e.message}",
                         Toast.LENGTH_LONG
                     ).show()
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isWiping = false,
+                    )
                 }
             }
         }
@@ -514,5 +558,86 @@ class WipeViewModel @Inject constructor(
         _uiState.update { currentState ->
             currentState.copy(isFolderSelected = isFolderSelected)
         }
+    }
+
+
+    /**
+     * Obtiene el tamaño total de un paquete (código, datos y caché) en bytes,
+     * ejecutando el comando 'dumpsys package' con privilegios de Shizuku.
+     *
+     * @param packageName El nombre del paquete de la aplicación.
+     * @return El tamaño total del paquete en BYTES (Long). Retorna 0L si hay un error.
+     */
+    fun getPackageSizeInBytes(packageName: String): Long {
+        // 1. Definir el comando dumpsys (ejecutado por el shell)
+        val command = arrayOf(
+            "sh",
+            "-c",
+            "dumpsys package $packageName"
+        )
+
+        try {
+            // 2. Ejecutar el comando con Shizuku
+            val process = Shizuku.newProcess(command, null, null)
+
+            // 3. Leer la salida completa del comando
+            val output =
+                BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
+
+            // 4. Esperar y verificar el código de salida
+            process.waitFor()
+
+            var totalSize = 0L
+
+            // 5. Expresiones Regulares para extraer los tamaños en bytes (Ej: codeSize=12345)
+            val codeSizeRegex = "codeSize=(\\d+)".toRegex()
+            val dataSizeRegex = "dataSize=(\\d+)".toRegex()
+            val cacheSizeRegex = "cacheSize=(\\d+)".toRegex()
+
+            // 6. Buscar, extraer y sumar cada componente del tamaño
+
+            // Tamaño del Código (APK)
+            codeSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let {
+                totalSize += it
+            }
+
+            // Tamaño de los Datos de Usuario
+            dataSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let {
+                totalSize += it
+            }
+
+            // Tamaño de la Caché
+            cacheSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let {
+                totalSize += it
+            }
+
+            if (totalSize == 0L && output.contains("not found")) {
+                Log.e("ShizukuSize", "Paquete $packageName no encontrado en la salida de dumpsys.")
+            }
+
+            return totalSize
+
+        } catch (e: Exception) {
+            // Manejo de excepciones (ej: si Shizuku falla o el proceso no se puede iniciar)
+            Log.e("ShizukuSize", "Fallo al ejecutar dumpsys para $packageName: ${e.message}")
+            return 0L
+        }
+    }
+
+    fun checkShizukuStatus() {
+        // 1. Verificar si el binder está vivo (Shizuku App está activo)
+        val isBinderActive = Shizuku.pingBinder()
+
+        // 2. Verificar si el permiso ya fue concedido a esta app.
+        val permissionResult = Shizuku.checkSelfPermission()
+
+        val isGranted = isBinderActive && (permissionResult == PackageManager.PERMISSION_GRANTED)
+
+        // 3. Actualizar el estado del ViewModel.
+        _isShizukuPermitted.value = isGranted
+    }
+
+    fun resetUiState() {
+        _uiState.value = WipeUiState()
     }
 }

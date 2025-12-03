@@ -28,7 +28,7 @@ fun ConfirmationScreen(
     val context = LocalContext.current
     val HeaderBlue = Color(0xFF2B4C6F)
 
-    // Efecto para mostrar el Toast cuando termina
+
     LaunchedEffect(state.wipeFinished) {
         if (state.wipeFinished) {
             Toast.makeText(
@@ -132,7 +132,7 @@ fun ConfirmationScreen(
                 Button(
                     onClick = {
                         viewModel.executeWipe()
-                        if (state.packageName.isNotEmpty()) viewModel.executeShizukuWipe(state.packageName)
+                        viewModel.executeShizukuWipe()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                     modifier = Modifier

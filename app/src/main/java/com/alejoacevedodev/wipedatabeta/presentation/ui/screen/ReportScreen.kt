@@ -50,7 +50,8 @@ fun ReportScreen(
     val endTime =
         if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
 
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSS", Locale.getDefault()) // Agregamos milisegundos
+    val dateFormat =
+        SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSS", Locale.getDefault()) // Agregamos milisegundos
     val startDateStr = dateFormat.format(Date(startTime))
     val endDateStr = dateFormat.format(Date(endTime))
 
@@ -133,7 +134,12 @@ fun ReportScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Informe del evento:", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(
+                    "Informe del evento:",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // ATRIBUTOS
@@ -165,7 +171,11 @@ fun ReportScreen(
                 // Tiempos detallados
                 ReportItem("Inicio:", startDateStr)
                 ReportItem("Fin:", endDateStr)
-                ReportItem("Duración:", durationFormatted, valueColor = Color.Blue) // Destacamos la duración
+                ReportItem(
+                    "Duración:",
+                    durationFormatted,
+                    valueColor = Color.Blue
+                ) // Destacamos la duración
 
                 // Datos técnicos (Long)
                 ReportItem("Timestamp Inicio (ms):", "$startTime", fontSize = 12.sp)
@@ -176,7 +186,9 @@ fun ReportScreen(
                 // BOTONES
                 Button(
                     onClick = { viewModel.generatePdf() },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = HeaderBlue),
                     shape = RoundedCornerShape(8.dp)
                 ) {
@@ -186,8 +198,13 @@ fun ReportScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedButton(
-                    onClick = onNavigateHome,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    onClick = {
+                        onNavigateHome()
+                        viewModel.resetUiState()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
                     shape = RoundedCornerShape(8.dp),
                     border = BorderStroke(1.dp, HeaderBlue)
                 ) {
@@ -195,7 +212,13 @@ fun ReportScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Versión\n1.0.12.1", textAlign = TextAlign.Center, color = Color.Gray, fontSize = 12.sp, modifier = Modifier.fillMaxWidth())
+                Text(
+                    "Versión\n1.0.12.1",
+                    textAlign = TextAlign.Center,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -261,5 +284,10 @@ fun formatFileSize(bytes: Long): String {
     if (bytes <= 0) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
     val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt()
-    return String.format(Locale.getDefault(), "%.2f %s", bytes / 1024.0.pow(digitGroups.toDouble()), units[digitGroups])
+    return String.format(
+        Locale.getDefault(),
+        "%.2f %s",
+        bytes / 1024.0.pow(digitGroups.toDouble()),
+        units[digitGroups]
+    )
 }

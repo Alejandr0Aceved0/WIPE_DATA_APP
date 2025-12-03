@@ -27,9 +27,9 @@ data class WipeUiState(
     val ftpUser: String = "",
     val ftpPass: String = "",
 
-    // Nombre del paquete del paquete a borrar
-    var packageName: String = "",
+
     val packagesToWipe: List<String> = emptyList(),
+    val packageWeights: MutableMap<String, Long> = mutableMapOf(),
     val isPackageSelected: Boolean = false,
     val isFolderSelected: Boolean = false
 )
