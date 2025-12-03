@@ -125,7 +125,11 @@ fun OriginSelectionScreen(
 
             // 2. Opción 1: BORRADO DE PAQUETES (SHIZUKU)
             item {
-                ShizukuWipeSection(viewModel = viewModel, headerColor = HeaderBlue, onNavigateToMethods = onNavigateToMethods)
+                ShizukuWipeSection(
+                    viewModel = viewModel,
+                    headerColor = HeaderBlue,
+                    onNavigateToMethods = onNavigateToMethods
+                )
             }
 
             // 3. Opción 2: BORRADO DE ARCHIVOS/CARPETAS (SAF)
@@ -154,10 +158,10 @@ fun OriginSelectionScreen(
             }
 
             // 4. Lista de Carpetas Seleccionadas (Si hay ítems)
-            if (state.selectedFolders.isNotEmpty()) {
+            if (state.selectedFolders.isNotEmpty() || state.packagesToWipe.isNotEmpty()) {
                 item {
                     Text(
-                        "Carpetas seleccionadas:",
+                        text = "Carpetas seleccionadas:",
                         fontWeight = FontWeight.Bold,
                         color = HeaderBlue
                     )
@@ -171,7 +175,13 @@ fun OriginSelectionScreen(
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = onNavigateToMethods,
+                        onClick = {
+
+                            viewModel.isPackageSelected(isPackageSelected = state.packagesToWipe.isNotEmpty())
+                            viewModel.isFolderSelected(isFolderSelected = state.selectedFolders.isNotEmpty())
+
+                            onNavigateToMethods()
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),

@@ -488,4 +488,31 @@ class WipeViewModel @Inject constructor(
                 .show()
         }
     }
+
+    fun onPackageSelected(packageName: String) {
+        if (packageName.isNotBlank()) {
+            _uiState.update { currentState ->
+                currentState.copy(packagesToWipe = currentState.packagesToWipe + packageName)
+            }
+        }
+    }
+
+    // Remover un paquete de la lista
+    fun onRemovePackage(packageName: String) {
+        _uiState.update { currentState ->
+            currentState.copy(packagesToWipe = currentState.packagesToWipe - packageName)
+        }
+    }
+
+    fun isPackageSelected(isPackageSelected: Boolean) {
+        _uiState.update { currentState ->
+            currentState.copy(isPackageSelected = isPackageSelected)
+        }
+    }
+
+    fun isFolderSelected(isFolderSelected: Boolean) {
+        _uiState.update { currentState ->
+            currentState.copy(isFolderSelected = isFolderSelected)
+        }
+    }
 }

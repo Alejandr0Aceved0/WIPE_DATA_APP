@@ -102,19 +102,19 @@ fun ConfirmationScreen(
                         Text(state.selectedMethod?.name ?: "Ninguno")
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        if (state.packageName.isNotEmpty()) {
+                        if (state.packagesToWipe.isNotEmpty()) {
                             Text(
-                                "Paquetes a borrar (${state.packageName}):",
+                                "Paquetes a borrar (${state.packagesToWipe.size}):",
                                 fontWeight = FontWeight.Bold
                             )
-                            state.selectedFolders.forEach {
-                                Text("- ${it.path?.substringAfterLast('/')}", fontSize = 14.sp)
+                            state.packagesToWipe.forEach {
+                                Text("- ${it.substringAfterLast('/')}", fontSize = 14.sp)
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                         }
 
 
-                        if (state.selectedFolders.size > 0) {
+                        if (state.selectedFolders.isNotEmpty()) {
                             Text(
                                 "Carpetas a borrar (${state.selectedFolders.size}):",
                                 fontWeight = FontWeight.Bold
