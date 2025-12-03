@@ -131,8 +131,7 @@ fun ConfirmationScreen(
                 // Botón Confirmar
                 Button(
                     onClick = {
-                        viewModel.executeWipe()
-                        viewModel.executeShizukuWipe()
+                        viewModel.startWipeProcess()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                     modifier = Modifier

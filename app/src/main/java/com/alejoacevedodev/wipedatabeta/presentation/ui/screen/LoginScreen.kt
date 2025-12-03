@@ -148,7 +148,6 @@ fun LoginScreen(
             // Botón Ingresar con VALIDACIÓN
             Button(
                 onClick = {
-                    onLoginSuccess("USERNAME")
                     // 0. Validar vacíos
                     if (username.isBlank() || password.isBlank()) {
                         Toast.makeText(context, "Por favor, complete todos los campos.", Toast.LENGTH_SHORT).show()

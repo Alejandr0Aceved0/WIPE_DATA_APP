@@ -63,6 +63,7 @@ fun ShizukuWipeSection(
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE0E0E0)),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -75,11 +76,20 @@ fun ShizukuWipeSection(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
+            Text(
+                text = "Nota: Si vas a borrar archivos protegidos del sistema utiliza este método.",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+
             // --- SECCIÓN DE INPUT Y BOTÓN AÑADIR ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 // Input para el Nombre del Paquete
                 OutlinedTextField(
                     value = packageNameInput,

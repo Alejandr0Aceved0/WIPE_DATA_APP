@@ -15,7 +15,9 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alejoacevedodev.wipedatabeta.data.model.WipeResult
 import com.alejoacevedodev.wipedatabeta.domain.model.WipeMethod
+import com.alejoacevedodev.wipedatabeta.domain.repository.ILogRepository
 import com.alejoacevedodev.wipedatabeta.domain.usecase.GetLogsUseCase
 import com.alejoacevedodev.wipedatabeta.domain.usecase.PerformWipeUseCase
 import com.alejoacevedodev.wipedatabeta.utils.FtpPrefs
@@ -23,28 +25,42 @@ import com.alejoacevedodev.wipedatabeta.utils.FtpUploader
 import com.alejoacevedodev.wipedatabeta.utils.PdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import rikka.shizuku.Shizuku
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.util.Locale
 import javax.inject.Inject
+import kotlin.math.pow
+
+// NOTA: Se asumen las interfaces y data classes: WipeUiState, WipeMethod, WipeLog, ILogRepository, WipeResult
+// ------------------------------------------------------------------------
 
 @HiltViewModel
 class WipeViewModel @Inject constructor(
     private val application: Application,
     private val performWipeUseCase: PerformWipeUseCase,
-    private val getLogsUseCase: GetLogsUseCase
+    private val getLogsUseCase: GetLogsUseCase,
+    private val logRepository: ILogRepository
 ) : ViewModel() {
 
+    // --- ESTADOS ---
     private val _uiState = MutableStateFlow(WipeUiState())
     val uiState = _uiState.asStateFlow()
 
     private val SHIZUKU_REQUEST_CODE = 100
     private val _isShizukuPermitted = MutableStateFlow(false)
     val isShizukuPermitted = _isShizukuPermitted.asStateFlow()
+
+    // Almacena pesos de paquetes auditados
+    private val packageWeights: MutableMap<String, Long> = mutableMapOf()
 
     private val permissionListener =
         Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
@@ -58,17 +74,18 @@ class WipeViewModel @Inject constructor(
         }
 
     init {
-        loadFtpConfig()
+        // loadFtpConfig()
         Shizuku.addRequestPermissionResultListener(permissionListener)
     }
 
-    fun setLoginUser(name: String) {
-        _uiState.update { it.copy(userName = name) }
-    }
+    // --- MANEJO DE ESTADO BÁSICO ---
+    fun setLoginUser(name: String) { _uiState.update { it.copy(userName = name) } }
+    fun selectMethod(method: WipeMethod) { _uiState.update { it.copy(selectedMethod = method) } }
+    fun resetWipeStatus() { _uiState.update { it.copy(wipeFinished = false) } }
 
-    // ========================================================================
-    // 1. GESTIÓN DE CARPETAS (SAF)
-    // ========================================================================
+    // ------------------------------------------------------------------------
+    // 1. MANEJO DE LISTAS Y SELECCIÓN
+    // ------------------------------------------------------------------------
 
     fun onFolderSelected(uri: Uri) {
         val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
@@ -96,88 +113,25 @@ class WipeViewModel @Inject constructor(
         }
         _uiState.update { it.copy(selectedFolders = it.selectedFolders - uri) }
     }
-
-    // ========================================================================
-    // 2. SELECCIÓN DE MÉTODO
-    // ========================================================================
-
-    fun selectMethod(method: WipeMethod) {
-        _uiState.update { it.copy(selectedMethod = method) }
-    }
-
-    // ========================================================================
-    // 3. EJECUCIÓN DEL BORRADO
-    // ========================================================================
-
-    fun executeWipe() {
-        val folders = _uiState.value.selectedFolders
-        val method = _uiState.value.selectedMethod ?: WipeMethod.NIST_SP_800_88
-
-        if (folders.isEmpty()) return
-
-        val startTime = System.currentTimeMillis()
-
-        // Reseteamos contadores e iniciamos estado de carga
-        _uiState.update {
-            it.copy(
-                isWiping = true,
-                wipeFinished = false,
-                deletedCount = 0,
-                deletedFilesList = emptyList(),
-                freedBytes = 0L,
-                wipeStartTime = startTime,
-                wipeEndTime = 0
-            )
-        }
-
-        viewModelScope.launch {
-            val allDeletedFiles = ArrayList<String>()
-            var totalBytesAccumulated = 0L
-
-            try {
-                for (folderUri in folders) {
-                    val folderName = getFileNameFromUri(folderUri)
-                    _uiState.update { it.copy(currentWipingFile = folderName) }
-
-                    val result = performWipeUseCase(folderUri, method, folderName)
-
-                    allDeletedFiles.addAll(result.deletedFiles)
-                    totalBytesAccumulated += result.freedBytes
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                val endTime = System.currentTimeMillis()
-
-                _uiState.update {
-                    it.copy(
-                        isWiping = false,
-                        currentWipingFile = "",
-                        selectedFolders = emptyList(),
-                        wipeFinished = true,
-                        deletedCount = it.deletedCount + allDeletedFiles.size,
-                        deletedFilesList = allDeletedFiles,
-                        freedBytes = totalBytesAccumulated,
-                        wipeEndTime = endTime
-                    )
-                }
+    fun onPackageSelected(packageName: String) {
+        if (packageName.isNotBlank()) {
+            _uiState.update { currentState ->
+                currentState.copy(packagesToWipe = currentState.packagesToWipe + packageName)
             }
         }
     }
-
-    // ========================================================================
-    // 4. EJECUCIÓN DEL BORRADO (SHIZUKU/ADB - pm clear)
-    // ========================================================================
-    fun requestShizukuPermission() {
-        if (!Shizuku.pingBinder()) {
-            Toast.makeText(
-                application,
-                "Shizuku no está activo. Por favor, inícialo.",
-                Toast.LENGTH_LONG
-            ).show()
-            return
+    fun onRemovePackage(packageName: String) {
+        _uiState.update { currentState ->
+            currentState.copy(packagesToWipe = currentState.packagesToWipe - packageName)
         }
+    }
 
+    // ------------------------------------------------------------------------
+    // 2. BORRADO MAESTRO (CONCURRENCIA Y CONTROL DE ESTADO)
+    // ------------------------------------------------------------------------
+
+    fun requestShizukuPermission() {
+        if (!Shizuku.pingBinder()) { /* ... */ return }
         if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
             Shizuku.requestPermission(SHIZUKU_REQUEST_CODE)
         } else {
@@ -185,77 +139,280 @@ class WipeViewModel @Inject constructor(
         }
     }
 
-    fun validatePackageExists(packageName: String): Boolean {
+    // 🔑 FUNCIÓN MAESTRA (Única llamada desde ConfirmationScreen)
+    fun startWipeProcess() = viewModelScope.launch(Dispatchers.IO) {
+        val state = _uiState.value
+        val packages = state.packagesToWipe
+        val folders = state.selectedFolders
+        if (folders.isEmpty() && packages.isEmpty()) return@launch
 
+        // 1. INICIAR ESTADO DE CARGA
+        _uiState.update { it.copy(isWiping = true, wipeFinished = false, freedBytes = 0L) }
+
+        var totalBytesAccumulated = 0L
+        var overallSuccess = true
+        val startTime = System.currentTimeMillis()
+        val allDeletedFiles = mutableListOf<String>()
+        val selectedMethod = state.selectedMethod ?: WipeMethod.NIST_SP_800_88
+
+        try {
+            // --- FASE 1: BORRADO SAF (Carpetas) ---
+            if (state.selectedFolders.isNotEmpty()) {
+
+                val startTime = System.currentTimeMillis()
+                // Reseteamos contadores e iniciamos estado de carga
+                _uiState.update {
+                    it.copy(
+                        isWiping = true,
+                        wipeFinished = false,
+                        deletedCount = 0,
+                        deletedFilesList = emptyList(),
+                        freedBytes = 0L,
+                        wipeStartTime = startTime,
+                        wipeEndTime = 0
+                    )
+                }
+
+                viewModelScope.launch {
+                    val allDeletedFiles = ArrayList<String>()
+                    var totalBytesAccumulated = 0L
+
+                    try {
+                        for (folderUri in folders) {
+                            val folderName = getFileNameFromUri(folderUri)
+                            _uiState.update { it.copy(currentWipingFile = folderName) }
+
+                            val result = performWipeUseCase(folderUri, selectedMethod, folderName)
+
+                            allDeletedFiles.addAll(result.deletedFiles)
+                            totalBytesAccumulated += result.freedBytes
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        val endTime = System.currentTimeMillis()
+
+                        _uiState.update {
+                            it.copy(
+                                isWiping = false,
+                                currentWipingFile = "",
+                                selectedFolders = emptyList(),
+                                wipeFinished = true,
+                                deletedCount = it.deletedCount + allDeletedFiles.size,
+                                deletedFilesList = allDeletedFiles,
+                                freedBytes = totalBytesAccumulated,
+                                wipeEndTime = endTime
+                            )
+                        }
+                    }
+                }
+
+
+            }
+
+            // --- FASE 2: BORRADO SHIZUKU (Paquetes) ---
+            if (state.packagesToWipe.isNotEmpty()) {
+                val resultShizuku = executeShizukuMultiWipeAudit(state.packagesToWipe, selectedMethod)
+
+                allDeletedFiles.addAll(resultShizuku.deletedFiles)
+                totalBytesAccumulated += resultShizuku.freedBytes
+            }
+
+        } catch (e: Exception) {
+            overallSuccess = false
+            Log.e("WipeProcess", "Fallo Maestro: ${e.message}")
+        } finally {
+            val endTime = System.currentTimeMillis()
+
+            // 2. LOGGING FINAL Y ACTUALIZACIÓN DE ESTADO
+            _uiState.update {
+                it.copy(
+                    isWiping = false, // 🛑 APAGAR VISTA DE CARGA
+                    wipeFinished = overallSuccess,
+                    deletedCount = allDeletedFiles.size,
+                    deletedFilesList = allDeletedFiles,
+                    freedBytes = totalBytesAccumulated,
+                    wipeEndTime = endTime
+                )
+            }
+            logAndToast(application, "Proceso de borrado completado.", isError = !overallSuccess)
+        }
+    }
+
+    /**
+     * Ejecuta pm clear para todos los paquetes en paralelo, audita el peso, y suma el total.
+     */
+    private suspend fun executeShizukuMultiWipeAudit(packages: List<String>, auditMethod: WipeMethod): WipeResult {
+        // 1. AUDITORÍA PREVIA (Obtener pesos para todos los paquetes antes de borrar)
+        auditPackageWeights(packages) // Popula el packageWeights Map
+
+        var totalFreedBytes = 0L
+        val successLogs = mutableListOf<String>()
+
+        try {
+            coroutineScope {
+                val deferredClears = packages.map { packageName ->
+                    async(Dispatchers.IO) {
+                        val size = packageWeights[packageName] ?: 0L
+
+                        // 🔑 EJECUCIÓN DEL CLEAR
+                        val success = performPmClear(packageName)
+
+                        if (success) {
+                            // Guardar log en DB y preparar entrada para PDF
+//                            logRepository.saveLog(WipeLog(packageName, auditMethod, System.currentTimeMillis(), "SUCCESS (Liberado: ${formatFileSize(size)})"))
+                            successLogs.add("PAQUETE LIMPIADO: $packageName. Tamaño: ${formatFileSize(size)}")
+                            size // Retorna el peso si tuvo éxito
+                        } else {
+                            0L
+                        }
+                    }
+                }
+
+                totalFreedBytes = deferredClears.awaitAll().sum()
+            }
+        } catch (e: Exception) {
+            Log.e("ShizukuMultiWipe", "Fallo en ejecución: ${e.message}")
+        }
+
+        return WipeResult(deletedFiles = successLogs, freedBytes = totalFreedBytes)
+    }
+
+    // ------------------------------------------------------------------------
+    // 3. SHIZUKU HELPERS
+    // ------------------------------------------------------------------------
+
+    private suspend fun performPmClear(packageName: String): Boolean = withContext(Dispatchers.IO) {
+        val command = arrayOf("sh", "-c", "pm clear $packageName")
+        try {
+            val process = Shizuku.newProcess(command, null, null)
+            val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText().trim() }
+            val exitCode = process.waitFor()
+            return@withContext exitCode == 0 && output == "Success"
+        } catch (e: Exception) {
+            Log.e("PmClear", "Excepción al ejecutar pm clear para $packageName: ${e.message}")
+            return@withContext false
+        }
+    }
+
+    private suspend fun auditPackageWeights(packages: List<String>) {
+        packageWeights.clear()
+        packages.forEach { packageName ->
+            val sizeInBytes = getPackageSizeInBytes(packageName)
+            if (sizeInBytes > 0) {
+                packageWeights[packageName] = sizeInBytes
+            }
+        }
+    }
+
+    private suspend fun getPackageSizeInBytes(packageName: String): Long = withContext(Dispatchers.IO) {
+//        val command = arrayOf("sh", "-c", "dumpsys package $packageName")
+        val command = arrayOf("sh", "-c", "dumpsys package $packageName")
+        try {
+            val process = Shizuku.newProcess(command, null, null)
+            val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
+            process.waitFor()
+
+            var totalSize = 0L
+            val codeSizeRegex = "codeSize=(\\d+)".toRegex()
+            val dataSizeRegex = "dataSize=(\\d+)".toRegex()
+            val cacheSizeRegex = "cacheSize=(\\d+)".toRegex()
+
+            codeSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let { totalSize += it }
+            dataSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let { totalSize += it }
+            cacheSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let { totalSize += it }
+
+            return@withContext totalSize
+        } catch (e: Exception) {
+            Log.e("ShizukuSize", "Fallo al ejecutar dumpsys para $packageName: ${e.message}")
+            return@withContext 0L
+        }
+    }
+
+    fun validatePackageExists(packageName: String): Boolean {
+        // Comando: pm path <package_name>
         val command = arrayOf("sh", "-c", "pm path $packageName")
 
         return try {
+            // Ejecución síncrona del comando (bloquea la corrutina)
             val process = Shizuku.newProcess(command, null, null)
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             val outputLine = reader.readLine()
             process.waitFor()
-            outputLine != null && outputLine.startsWith("package:")
+
+            // El paquete existe si la salida no es nula y comienza con "package:"
+            val exists = outputLine != null && outputLine.startsWith("package:")
+
+            if (!exists) {
+                // Mostrar un Toast si la validación falla (para el usuario)
+                logAndToast(application, "Error: El paquete '$packageName' no fue encontrado.", isError = true)
+            }
+            exists
 
         } catch (e: Exception) {
-            Log.e("PackageValidation", "Paquete no encontrado: $packageName")
-            Toast.makeText(
-                application,
-                "Error: El paquete '$packageName' no fue encontrado en el dispositivo.",
-                Toast.LENGTH_LONG
-            ).show()
-            Log.e("ShizukuValidation", "Error al validar con Shizuku: ${e.message}")
+            // Esto captura fallos de ejecución de Shizuku
+            Log.e("PackageValidation", "Fallo al validar con Shizuku: ${e.message}")
+            logAndToast(application, "Error interno al validar paquete. Ver Logcat.", isError = true)
             false
         }
     }
-
-    fun executeShizukuWipe() {
-
-        val packages = _uiState.value.packagesToWipe
-        val method = WipeMethod.PM_CLEAR
-
-        if (!isShizukuPermitted.value) {
-            Toast.makeText(application, "Permiso de Shizuku no otorgado.", Toast.LENGTH_SHORT)
-                .show()
-            return
+    // --- OTROS HELPERS ---
+    private fun logAndToast(context: Context, message: String, isError: Boolean) {
+        if (isError) {
+            Log.e("WipeViewModel", message)
+        } else {
+            Log.i("WipeViewModel", message)
         }
-        Toast.makeText(application, "Iniciando limpieza con newProcess...", Toast.LENGTH_LONG)
-            .show()
-
-
-        _uiState.update {
-            it.copy(
-                isWiping = true,
-                wipeFinished = false
-            )
-        }
-
-        for (packageName in packages) {
-            executePmClearWithNewProcess(packageName)
-        }
-
-        _uiState.update {
-            it.copy(
-                isWiping = false,
-                wipeFinished = true,
-                deletedCount = it.deletedCount + packages.size,
-            )
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context, message, if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
         }
     }
+    private fun formatFileSize(bytes: Long): String {
+        if (bytes <= 0) return "0 B"
+        val units = arrayOf("B", "KB", "MB", "GB", "TB")
+        val digitGroups = (kotlin.math.log10(bytes.toDouble()) / kotlin.math.log10(1024.0)).toInt() // Se usa log10 y pow
+        return String.format(
+            Locale.getDefault(),
+            "%.2f %s",
+            bytes / 1024.0.pow(digitGroups.toDouble()),
+            units[digitGroups]
+        )
+    }
 
+    private fun getFileNameFromUri(uri: Uri): String {
+        val queryUri = if (DocumentsContract.isTreeUri(uri)) {
+            DocumentsContract.buildDocumentUriUsingTree(
+                uri,
+                DocumentsContract.getTreeDocumentId(uri)
+            )
+        } else {
+            uri
+        }
 
-    // ========================================================================
-    // 5. GENERACIÓN DE PDF Y SUBIDA FTP
-    // ========================================================================
+        return try {
+            application.contentResolver.query(queryUri, null, null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (idx != -1) c.getString(idx) else null
+                } else null
+            } ?: uri.lastPathSegment ?: "Desconocido"
+        } catch (e: Exception) {
+            uri.lastPathSegment ?: "Desconocido"
+        }
+    }
+    // WipeViewModel.kt (Función generatePdf)
 
     fun generatePdf() {
         val state = _uiState.value
 
-        val minValidTime = 1704067200000L
+        // 1. LÓGICA DE FECHAS Y SEGURIDAD
+        val minValidTime = 1704067200000L // Placeholder de seguridad (Enero 1, 2024)
         val safeStart =
             if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
         val safeEnd =
             if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
 
+        // 2. GENERAR EL PDF (Punto de convergencia de los datos)
         val pdfFile = PdfGenerator.generateReportPdf(
             context = application,
             operatorName = state.userName,
@@ -263,12 +420,13 @@ class WipeViewModel @Inject constructor(
             startTime = safeStart,
             endTime = safeEnd,
             deletedCount = state.deletedCount,
-            deletedFiles = state.deletedFilesList,
+            deletedFiles = state.deletedFilesList, // SAF logs o log simulado
             freedBytes = state.freedBytes,
-            packageWeights = state.packageWeights,
-            packagesToWipe = state.packagesToWipe
+            packageWeights = state.packageWeights, // 🔑 MAPA DE PESOS SHIZUKU
+            packagesToWipe = state.packagesToWipe // Lista de paquetes
         )
 
+        // 3. MANEJO DEL ARCHIVO GENERADO (FTP y Toast)
         if (pdfFile != null && pdfFile.exists()) {
             if (state.ftpHost.isNotEmpty() && state.ftpUser.isNotEmpty()) {
                 viewModelScope.launch {
@@ -305,31 +463,30 @@ class WipeViewModel @Inject constructor(
                     Toast.LENGTH_SHORT
                 ).show()
             }
+        } else {
+            Toast.makeText(
+                application,
+                "Fallo al generar el reporte PDF.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
-    fun resetWipeStatus() {
-        _uiState.update { it.copy(wipeFinished = false) }
+    fun checkShizukuStatus() {
+        // 1. Verificar si el binder está vivo (Shizuku App está activo)
+        val isBinderActive = Shizuku.pingBinder()
+
+        // 2. Verificar si el permiso ya fue concedido a esta app.
+        val permissionResult = Shizuku.checkSelfPermission()
+
+        val isGranted = isBinderActive && (permissionResult == PackageManager.PERMISSION_GRANTED)
+
+        // 3. Actualizar el estado del ViewModel.
+        _isShizukuPermitted.value = isGranted
     }
 
-    // ========================================================================
-    // 6. CONFIGURACIÓN FTP Y HELPERS
-    // ========================================================================
-
-    private fun loadFtpConfig() {
-        val host = FtpPrefs.getHost(application)
-        val user = FtpPrefs.getUser(application)
-        val pass = FtpPrefs.getPass(application)
-        val port = FtpPrefs.getPort(application)
-
-        _uiState.update {
-            it.copy(
-                ftpHost = host,
-                ftpPort = port.toString(),
-                ftpUser = user,
-                ftpPass = pass
-            )
-        }
+    fun resetUiState() {
+        _uiState.value = WipeUiState()
     }
 
     fun updateFtpHost(value: String) {
@@ -351,119 +508,12 @@ class WipeViewModel @Inject constructor(
         Toast.makeText(application, "Configuración FTP Guardada", Toast.LENGTH_SHORT).show()
     }
 
-    private fun getFileNameFromUri(uri: Uri): String {
-        val queryUri = if (DocumentsContract.isTreeUri(uri)) {
-            DocumentsContract.buildDocumentUriUsingTree(
-                uri,
-                DocumentsContract.getTreeDocumentId(uri)
-            )
-        } else {
-            uri
-        }
-
-        return try {
-            application.contentResolver.query(queryUri, null, null, null, null)?.use { c ->
-                if (c.moveToFirst()) {
-                    val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (idx != -1) c.getString(idx) else null
-                } else null
-            } ?: uri.lastPathSegment ?: "Desconocido"
-        } catch (e: Exception) {
-            uri.lastPathSegment ?: "Desconocido"
-        }
-    }
-
     fun hasStoragePermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else true
     }
 
-
-    private fun executePmClearWithNewProcess(packageName: String) {
-        if (!isShizukuPermitted.value) {
-            Toast.makeText(application, "Permiso de Shizuku no otorgado.", Toast.LENGTH_SHORT)
-                .show()
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val command = arrayOf("pm", "clear", packageName)
-
-            try {
-                val process = Shizuku.newProcess(command, null, null)
-                val output = BufferedReader(InputStreamReader(process.inputStream)).use {
-                    it.readText().trim()
-                }
-                val error = BufferedReader(InputStreamReader(process.errorStream)).use {
-                    it.readText().trim()
-                }
-                val exitCode = process.waitFor()
-                Handler(Looper.getMainLooper()).post {
-                    if (exitCode == 0 && output == "Success") {
-                        Log.i(
-                            "ShizukuNewProcess",
-                            "Limpieza de $packageName EXITOSA. Output: $output"
-                        )
-                        Toast.makeText(
-                            application,
-                            "Limpieza de $packageName ÉXITO.",
-                            Toast.LENGTH_LONG
-                        ).show()
-
-                        val size =
-                            getPackageSizeInBytes(packageName = packageName)
-
-                        if (size > 0) {
-                            _uiState.update { currentState ->
-
-                                val updatedMap = currentState.packageWeights.toMutableMap()
-
-                                updatedMap[packageName] = size
-                                currentState.copy(
-                                    packageWeights = updatedMap
-                                )
-                            }
-                        } else {
-                            Log.e("Audit", "Error: No se pudo obtener el peso de $packageName.")
-                        }
-
-                    } else {
-                        Log.e(
-                            "ShizukuNewProcess",
-                            "Limpieza de $packageName FALLIDA. Error: $error, Exit: $exitCode"
-                        )
-                        Toast.makeText(
-                            application,
-                            "Limpieza de $packageName FALLÓ. Detalles en Logcat.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("ShizukuNewProcess", "Excepción: ${e.message}")
-                Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(
-                        application,
-                        "Error al ejecutar proceso: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-
-                _uiState.update {
-                    it.copy(
-                        isWiping = false,
-                    )
-                }
-            }
-        }
-    }
-
-
-    /**
-     * Mueve (mv) el contenido de la carpeta de datos de la aplicación en /Android/data
-     * a una carpeta de destino en el almacenamiento compartido.
-     */
     fun moveAllDataToMedia(context: Context) {
         if (!isShizukuPermitted.value) {
             logAndToast(context, "Permiso de Shizuku no otorgado.", isError = true)
@@ -520,34 +570,6 @@ class WipeViewModel @Inject constructor(
         }
     }
 
-    // Función helper para manejar logs y toasts
-    private fun logAndToast(context: Context, message: String, isError: Boolean) {
-        if (isError) {
-            Log.e("ShizukuMove", message)
-        } else {
-            Log.i("ShizukuMove", message)
-        }
-        Handler(Looper.getMainLooper()).post {
-            Toast.makeText(context, message, if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT)
-                .show()
-        }
-    }
-
-    fun onPackageSelected(packageName: String) {
-        if (packageName.isNotBlank()) {
-            _uiState.update { currentState ->
-                currentState.copy(packagesToWipe = currentState.packagesToWipe + packageName)
-            }
-        }
-    }
-
-    // Remover un paquete de la lista
-    fun onRemovePackage(packageName: String) {
-        _uiState.update { currentState ->
-            currentState.copy(packagesToWipe = currentState.packagesToWipe - packageName)
-        }
-    }
-
     fun isPackageSelected(isPackageSelected: Boolean) {
         _uiState.update { currentState ->
             currentState.copy(isPackageSelected = isPackageSelected)
@@ -558,86 +580,5 @@ class WipeViewModel @Inject constructor(
         _uiState.update { currentState ->
             currentState.copy(isFolderSelected = isFolderSelected)
         }
-    }
-
-
-    /**
-     * Obtiene el tamaño total de un paquete (código, datos y caché) en bytes,
-     * ejecutando el comando 'dumpsys package' con privilegios de Shizuku.
-     *
-     * @param packageName El nombre del paquete de la aplicación.
-     * @return El tamaño total del paquete en BYTES (Long). Retorna 0L si hay un error.
-     */
-    fun getPackageSizeInBytes(packageName: String): Long {
-        // 1. Definir el comando dumpsys (ejecutado por el shell)
-        val command = arrayOf(
-            "sh",
-            "-c",
-            "dumpsys package $packageName"
-        )
-
-        try {
-            // 2. Ejecutar el comando con Shizuku
-            val process = Shizuku.newProcess(command, null, null)
-
-            // 3. Leer la salida completa del comando
-            val output =
-                BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
-
-            // 4. Esperar y verificar el código de salida
-            process.waitFor()
-
-            var totalSize = 0L
-
-            // 5. Expresiones Regulares para extraer los tamaños en bytes (Ej: codeSize=12345)
-            val codeSizeRegex = "codeSize=(\\d+)".toRegex()
-            val dataSizeRegex = "dataSize=(\\d+)".toRegex()
-            val cacheSizeRegex = "cacheSize=(\\d+)".toRegex()
-
-            // 6. Buscar, extraer y sumar cada componente del tamaño
-
-            // Tamaño del Código (APK)
-            codeSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let {
-                totalSize += it
-            }
-
-            // Tamaño de los Datos de Usuario
-            dataSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let {
-                totalSize += it
-            }
-
-            // Tamaño de la Caché
-            cacheSizeRegex.find(output)?.groupValues?.get(1)?.toLongOrNull()?.let {
-                totalSize += it
-            }
-
-            if (totalSize == 0L && output.contains("not found")) {
-                Log.e("ShizukuSize", "Paquete $packageName no encontrado en la salida de dumpsys.")
-            }
-
-            return totalSize
-
-        } catch (e: Exception) {
-            // Manejo de excepciones (ej: si Shizuku falla o el proceso no se puede iniciar)
-            Log.e("ShizukuSize", "Fallo al ejecutar dumpsys para $packageName: ${e.message}")
-            return 0L
-        }
-    }
-
-    fun checkShizukuStatus() {
-        // 1. Verificar si el binder está vivo (Shizuku App está activo)
-        val isBinderActive = Shizuku.pingBinder()
-
-        // 2. Verificar si el permiso ya fue concedido a esta app.
-        val permissionResult = Shizuku.checkSelfPermission()
-
-        val isGranted = isBinderActive && (permissionResult == PackageManager.PERMISSION_GRANTED)
-
-        // 3. Actualizar el estado del ViewModel.
-        _isShizukuPermitted.value = isGranted
-    }
-
-    fun resetUiState() {
-        _uiState.value = WipeUiState()
     }
 }

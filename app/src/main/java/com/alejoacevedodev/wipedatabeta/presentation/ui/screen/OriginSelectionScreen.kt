@@ -41,6 +41,7 @@ fun OriginSelectionScreen(
     val HeaderBlue = Color(0xFF2B4C6F)
     val ButtonGray = Color(0xFFE0E0E0)
     val context = LocalContext.current
+    val hasItemsToProcess = state.selectedFolders.isNotEmpty() || state.packagesToWipe.isNotEmpty()
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -64,7 +65,6 @@ fun OriginSelectionScreen(
                 .padding(horizontal = 16.dp),
             contentAlignment = Alignment.CenterStart
         ) {
-            // 1. Título a la izquierda
             Text(
                 text = "NULLUM Lite",
                 color = Color.White,
@@ -72,34 +72,16 @@ fun OriginSelectionScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            // 2. Fila para los iconos a la derecha
             Row(
-                modifier = Modifier.align(Alignment.CenterEnd), // Alineamos toda la fila a la derecha
+                modifier = Modifier.align(Alignment.CenterEnd),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Botón Configuración
-                IconButton(
-                    onClick = onConfigureFtp
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Settings,
-                        contentDescription = "Configurar FTP",
-                        tint = Color.White
-                    )
+                IconButton(onClick = onConfigureFtp) {
+                    Icon(Icons.Filled.Settings, contentDescription = "Configurar FTP", tint = Color.White)
                 }
-
-                // Espacio entre los botones (Opcional, IconButton ya tiene padding interno)
                 Spacer(modifier = Modifier.width(4.dp))
-
-                // Botón Salir (Envuelto en IconButton para que sea clickeable y consistente)
-                IconButton(
-                    onClick = { onNavigateHome() }
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = "Salir",
-                        tint = Color.White
-                    )
+                IconButton(onClick = { onNavigateHome() }) {
+                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir", tint = Color.White)
                 }
             }
         }
@@ -142,44 +124,53 @@ fun OriginSelectionScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Botones de Origen
+                // Botones de Origen SAF
                 OriginCard("Memoria Interna", ButtonGray) { folderPickerLauncher.launch(null) }
                 Spacer(modifier = Modifier.height(12.dp))
                 OriginCard("Memoria Externa", ButtonGray) { folderPickerLauncher.launch(null) }
                 Spacer(modifier = Modifier.height(12.dp))
                 OriginCard("Tarjeta SD", ButtonGray) { folderPickerLauncher.launch(null) }
                 Spacer(modifier = Modifier.height(12.dp))
-                // Botón MOVER ARCHIVOS
-                OriginCard(
-                    "MOVER ARCHIVOS",
-                    ButtonGray
-                ) { viewModel.moveAllDataToMedia(context = context) }
+                Text(
+                    text = "Nota: Si no dispositivo no permite visualizar tu ruta Android/data, da clic a mover archivos.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OriginCard("MOVER ARCHIVOS", ButtonGray) { viewModel.moveAllDataToMedia(context = context) }
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // 4. Lista de Carpetas Seleccionadas (Si hay ítems)
-            if (state.selectedFolders.isNotEmpty() || state.packagesToWipe.isNotEmpty()) {
+
+            // 4. LISTA UNIFICADA DE ÍTEMS A PROCESAR
+            if (hasItemsToProcess) {
+
                 item {
                     Text(
-                        text = "Carpetas seleccionadas:",
+                        text = "Ítems a procesar:",
                         fontWeight = FontWeight.Bold,
                         color = HeaderBlue
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
+                // 4a. LISTA DE CARPETAS SAF
                 items(state.selectedFolders.toList(), key = { it.toString() }) { uri ->
                     FolderItem(uri, onRemove = { viewModel.onRemoveFolder(uri) })
                 }
 
+
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    // 5. BOTÓN CONTINUAR
                     Button(
                         onClick = {
-
-                            viewModel.isPackageSelected(isPackageSelected = state.packagesToWipe.isNotEmpty())
-                            viewModel.isFolderSelected(isFolderSelected = state.selectedFolders.isNotEmpty())
-
+                            // 🔑 Prepara los flags y navega
+                            viewModel.isPackageSelected(state.packagesToWipe.isNotEmpty())
+                            viewModel.isFolderSelected(state.selectedFolders.isNotEmpty())
                             onNavigateToMethods()
                         },
                         modifier = Modifier
@@ -192,9 +183,13 @@ fun OriginSelectionScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
+            } else {
+                item {
+                    Spacer(modifier = Modifier.height(100.dp))
+                }
             }
 
-            // 5. Pie de página
+            // 6. Pie de página
             item {
                 Text(
                     "Versión\n1.0.12.1",
@@ -202,11 +197,15 @@ fun OriginSelectionScreen(
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
+// ----------------------------------------------------------------------
+// --- COMPOSABLES AUXILIARES ---
+// ----------------------------------------------------------------------
 
 @Composable
 fun OriginCard(title: String, color: Color, onClick: () -> Unit) {
@@ -252,7 +251,7 @@ fun FolderItem(uri: Uri, onRemove: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = uri.path?.substringAfterLast('/') ?: "...",
+                text = "Carpeta: ${uri.path?.substringAfterLast('/')}",
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
                 fontSize = 14.sp,

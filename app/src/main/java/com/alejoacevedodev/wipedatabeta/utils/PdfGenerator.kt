@@ -231,7 +231,7 @@ object PdfGenerator {
             valuePaint
         )
 
-        // Espacio liberado en verde
+        // Espacio liberado en verde (Utiliza la suma de packageWeights + freedBytes)
         y = drawRow(
             canvas,
             "Espacio Liberado:",
@@ -366,16 +366,21 @@ object PdfGenerator {
         canvas.drawLine(margin, y, rightMargin, y, linePaint)
         y += 30f
 
-        // LISTA DE ARCHIVOS (Paginada)
-        canvas.drawText("Detalle de Archivos Eliminados:", margin, y, headerSectionPaint)
+        // ----------------------------------------------------------- 17.44MB
+        // 5. DETALLE DE ITEMS ELIMINADOS (CORREGIDA)
+        // -----------------------------------------------------------
+        canvas.drawText("Detalle de Items Eliminados:", margin, y, headerSectionPaint)
         y += 20f
 
-        if (deletedFiles.isEmpty()) {
-            canvas.drawText("(Ningún archivo encontrado o borrado)", margin, y, fileListPaint)
-            y += 15f
-        } else {
+        val hasPackageData = packageWeights.isNotEmpty()
+        val hasDeletedFiles = deletedFiles.isNotEmpty()
 
-            for (packageName in packageWeights) {
+        // --- A. MOSTRAR PAQUETES LIMPIADOS (FLUJO SHIZUKU) ---
+        if (hasPackageData) {
+            canvas.drawText("Paquetes Limpiados (pm clear):", margin, y, valueBoldPaint)
+            y += 15f
+
+            for ((packageName, size) in packageWeights) {
                 // Control de salto de página
                 if (y > pageHeight - margin - 40f) {
                     drawFooter(canvas, pageWidth.toFloat(), y + 20f)
@@ -383,15 +388,27 @@ object PdfGenerator {
                     page = startNewPage()
                     canvas = page.canvas
                     y = margin + 20f
-                    canvas.drawText("Continuación Archivos...", margin, y, headerSectionPaint)
+                    canvas.drawText("Continuación Paquetes...", margin, y, headerSectionPaint)
                     y += 25f
                 }
-                // Acortar nombre si es muy largo para que no se salga
-                val cleanName =
-                    if (packageName.key.length > 90) packageName.key.take(87) + "..." else packageName.key
-                canvas.drawText("• $cleanName", margin, y, fileListPaint)
-                y += 12f
+
+                val formattedSize = formatFileSize(size)
+                val display = "$packageName (Liberó: $formattedSize)"
+
+                val cleanName = if (display.length > 90) display.take(87) + "..." else display
+
+                canvas.drawText("• $cleanName", margin + 10f, y, fileListPaint)
+                y += 15f
             }
+            y += 10f
+            canvas.drawLine(margin, y, rightMargin, y, linePaint)
+            y += 15f
+        }
+
+        // --- B. MOSTRAR ARCHIVOS SAF (Si hay datos de archivos) ---
+        if (hasDeletedFiles) {
+            canvas.drawText("Archivos y Carpetas Borradas (SAF):", margin, y, valueBoldPaint)
+            y += 15f
 
             for (fileName in deletedFiles) {
                 // Control de salto de página
@@ -404,11 +421,17 @@ object PdfGenerator {
                     canvas.drawText("Continuación Archivos...", margin, y, headerSectionPaint)
                     y += 25f
                 }
-                // Acortar nombre si es muy largo para que no se salga
+
                 val cleanName = if (fileName.length > 90) fileName.take(87) + "..." else fileName
-                canvas.drawText("• $cleanName", margin, y, fileListPaint)
+                canvas.drawText("• $cleanName", margin + 10f, y, fileListPaint)
                 y += 12f
             }
+        }
+
+        // --- C. Caso de No Datos ---
+        if (!hasPackageData && !hasDeletedFiles) {
+            canvas.drawText("(Ningún item encontrado o borrado)", margin, y, fileListPaint)
+            y += 15f
         }
 
         // Footer final
@@ -422,6 +445,7 @@ object PdfGenerator {
         }
         drawFooter(canvas, pageWidth.toFloat(), y)
         pdfDocument.finishPage(page)
+
 
         // --- GUARDADO ---
         val fileName = "Certificado_Nullum_${System.currentTimeMillis()}.pdf"
@@ -461,7 +485,9 @@ object PdfGenerator {
         }
     }
 
+    // -----------------------------------------------------------
     // --- HELPERS ---
+    // -----------------------------------------------------------
 
     private fun getDeviceUniqueId(context: Context): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -595,11 +621,17 @@ object PdfGenerator {
         return StorageInfo(formatFileSize(totalBytes), formatFileSize(availableBytes))
     }
 
+    /**
+     * Formatea el tamaño en bytes.
+     * Si se proporciona packageWeights, suma todos los bytes liberados.
+     */
     private fun formatFileSize(
         bytes: Long,
         packageWeights: MutableMap<String, Long>? = null
     ): String {
-        val totalBytes: Long = packageWeights?.values?.sum()?: bytes
+        // Si el mapa de pesos existe, usa la suma de todos los valores del mapa (flujo Shizuku).
+        // De lo contrario, usa el valor de 'bytes' individual (flujo SAF).
+        val totalBytes: Long = packageWeights?.values?.sum() ?: bytes
         if (totalBytes <= 0) return "0 B"
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
         val digitGroups = (log10(totalBytes.toDouble()) / log10(1024.0)).toInt()
