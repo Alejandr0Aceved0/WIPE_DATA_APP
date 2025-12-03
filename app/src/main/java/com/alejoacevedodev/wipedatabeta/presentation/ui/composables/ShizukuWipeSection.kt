@@ -122,7 +122,16 @@ fun ShizukuWipeSection(
                     Icon(Icons.Default.Add, contentDescription = "Añadir paquete")
                 }
             }
+
+            Text(
+                text = "Ingrese el nombre completo del paquete (ejem: co.net.tps.idc).",
+                fontSize = 12.sp,
+                color = Color.DarkGray,
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
+
 
             // --- LISTA DE PAQUETES SELECCIONADOS ---
             if (packagesToWipe.isNotEmpty()) {

@@ -132,7 +132,7 @@ fun OriginSelectionScreen(
                 OriginCard("Tarjeta SD", ButtonGray) { folderPickerLauncher.launch(null) }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Nota: Si no dispositivo no permite visualizar tu ruta Android/data, da clic a mover archivos.",
+                    text = "Nota: Si tu dispositivo no permite visualizar tu ruta Android/data, da clic a mover archivos e intenta nuevamente visualizar en la ruta Android/media.",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.Black,
