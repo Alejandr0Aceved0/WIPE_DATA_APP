@@ -40,7 +40,11 @@ fun WipeMethodScreen(
 
     // Función helper para validar antes de avanzar
     fun validateAndProceed(method: WipeMethod) {
-        if (state.selectedFolders.isEmpty()) {
+
+        if (state.packageName.isEmpty()) {
+            Toast.makeText(context, "⚠️ Debes ingresar un nombre de paquete válido.", Toast.LENGTH_SHORT).show()
+            return
+        } else if (state.selectedFolders.isEmpty()) {
             Toast.makeText(context, "⚠️ No hay carpetas seleccionadas para borrar.", Toast.LENGTH_SHORT).show()
         } else {
             viewModel.selectMethod(method)

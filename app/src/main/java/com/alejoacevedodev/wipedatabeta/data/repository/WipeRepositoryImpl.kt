@@ -161,6 +161,8 @@ class WipeRepositoryImpl(
                 )
                 overwriteAndWipe(uri, patterns)
             }
+
+            WipeMethod.PM_CLEAR -> Log.w("WipeRepo", "PM_CLEAR no es aplicable para archivos individuales.")
         }
     }
 

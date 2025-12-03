@@ -25,5 +25,8 @@ data class WipeUiState(
     val ftpHost: String = "",
     val ftpPort: String = "21",
     val ftpUser: String = "",
-    val ftpPass: String = ""
+    val ftpPass: String = "",
+
+    // Nombre del paquete del paquete a borrar
+    var packageName: String = ""
 )

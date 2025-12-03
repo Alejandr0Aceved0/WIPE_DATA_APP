@@ -106,6 +106,10 @@ class WipeViewModel @Inject constructor(
         _uiState.update { it.copy(selectedMethod = method) }
     }
 
+    fun setPackageName(packageName: String) {
+        _uiState.update { it.copy(packageName = packageName) }
+    }
+
     // ========================================================================
     // 3. EJECUCIÓN DEL BORRADO
     // ========================================================================
@@ -186,12 +190,37 @@ class WipeViewModel @Inject constructor(
         }
     }
 
+    fun validatePackageExists(packageName: String): Boolean {
+
+        val command = arrayOf("sh", "-c", "pm path $packageName")
+
+        return try {
+            val process = Shizuku.newProcess(command, null, null)
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            val outputLine = reader.readLine()
+            process.waitFor()
+            outputLine != null && outputLine.startsWith("package:")
+
+        } catch (e: Exception) {
+            Log.e("PackageValidation", "Paquete no encontrado: $packageName")
+            Toast.makeText(
+                application,
+                "Error: El paquete '$packageName' no fue encontrado en el dispositivo.",
+                Toast.LENGTH_LONG
+            ).show()
+            Log.e("ShizukuValidation", "Error al validar con Shizuku: ${e.message}")
+            false
+        }
+    }
+
     fun executeShizukuWipe(packageName: String) {
         if (!isShizukuPermitted.value) {
-            Toast.makeText(application, "Permiso de Shizuku no otorgado.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(application, "Permiso de Shizuku no otorgado.", Toast.LENGTH_SHORT)
+                .show()
             return
         }
-        Toast.makeText(application, "Iniciando limpieza con newProcess...", Toast.LENGTH_LONG).show()
+        Toast.makeText(application, "Iniciando limpieza con newProcess...", Toast.LENGTH_LONG)
+            .show()
         executePmClearWithNewProcess(packageName)
     }
 
@@ -333,7 +362,8 @@ class WipeViewModel @Inject constructor(
 
     private fun executePmClearWithNewProcess(packageName: String) {
         if (!isShizukuPermitted.value) {
-            Toast.makeText(application, "Permiso de Shizuku no otorgado.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(application, "Permiso de Shizuku no otorgado.", Toast.LENGTH_SHORT)
+                .show()
             return
         }
 
@@ -342,22 +372,44 @@ class WipeViewModel @Inject constructor(
 
             try {
                 val process = Shizuku.newProcess(command, null, null)
-                val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText().trim() }
-                val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText().trim() }
+                val output = BufferedReader(InputStreamReader(process.inputStream)).use {
+                    it.readText().trim()
+                }
+                val error = BufferedReader(InputStreamReader(process.errorStream)).use {
+                    it.readText().trim()
+                }
                 val exitCode = process.waitFor()
                 Handler(Looper.getMainLooper()).post {
                     if (exitCode == 0 && output == "Success") {
-                        Log.i("ShizukuNewProcess", "Limpieza de $packageName EXITOSA. Output: $output")
-                        Toast.makeText(application, "Limpieza de $packageName ÉXITO.", Toast.LENGTH_LONG).show()
+                        Log.i(
+                            "ShizukuNewProcess",
+                            "Limpieza de $packageName EXITOSA. Output: $output"
+                        )
+                        Toast.makeText(
+                            application,
+                            "Limpieza de $packageName ÉXITO.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     } else {
-                        Log.e("ShizukuNewProcess", "Limpieza de $packageName FALLIDA. Error: $error, Exit: $exitCode")
-                        Toast.makeText(application, "Limpieza de $packageName FALLÓ. Detalles en Logcat.", Toast.LENGTH_LONG).show()
+                        Log.e(
+                            "ShizukuNewProcess",
+                            "Limpieza de $packageName FALLIDA. Error: $error, Exit: $exitCode"
+                        )
+                        Toast.makeText(
+                            application,
+                            "Limpieza de $packageName FALLÓ. Detalles en Logcat.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             } catch (e: Exception) {
                 Log.e("ShizukuNewProcess", "Excepción: ${e.message}")
                 Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(application, "Error al ejecutar proceso: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        application,
+                        "Error al ejecutar proceso: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
@@ -365,9 +417,9 @@ class WipeViewModel @Inject constructor(
 
 
     /**
-    * Mueve (mv) el contenido de la carpeta de datos de la aplicación en /Android/data
-    * a una carpeta de destino en el almacenamiento compartido.
-    */
+     * Mueve (mv) el contenido de la carpeta de datos de la aplicación en /Android/data
+     * a una carpeta de destino en el almacenamiento compartido.
+     */
     fun moveAllDataToMedia(context: Context) {
         if (!isShizukuPermitted.value) {
             logAndToast(context, "Permiso de Shizuku no otorgado.", isError = true)
@@ -390,19 +442,32 @@ class WipeViewModel @Inject constructor(
             try {
                 // 1. Ejecutar el movimiento (mv) con Shizuku.newProcess
                 val process = Shizuku.newProcess(command, null, null)
-                val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText().trim() }
-                val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText().trim() }
+                val output = BufferedReader(InputStreamReader(process.inputStream)).use {
+                    it.readText().trim()
+                }
+                val error = BufferedReader(InputStreamReader(process.errorStream)).use {
+                    it.readText().trim()
+                }
                 val exitCode = process.waitFor()
 
                 // 2. Reportar resultado
                 Handler(Looper.getMainLooper()).post {
                     if (exitCode == 0 && error.isEmpty()) {
                         Log.i("ShizukuMove", "Comando de movimiento EXITOSO.")
-                        Toast.makeText(context, "Movimiento EXITOSO a Android/media.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "Movimiento EXITOSO a Android/media.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     } else {
-                        val errorMessage = if (error.isNotBlank()) error else "Fallo al mover datos. Código: $exitCode. Output: $output"
+                        val errorMessage =
+                            if (error.isNotBlank()) error else "Fallo al mover datos. Código: $exitCode. Output: $output"
                         Log.e("ShizukuMove", errorMessage)
-                        Toast.makeText(context, "MOVIMIENTO FALLIDO. Ver Logcat.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "MOVIMIENTO FALLIDO. Ver Logcat.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             } catch (e: Exception) {
@@ -419,7 +484,8 @@ class WipeViewModel @Inject constructor(
             Log.i("ShizukuMove", message)
         }
         Handler(Looper.getMainLooper()).post {
-            Toast.makeText(context, message, if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, message, if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT)
+                .show()
         }
     }
 }

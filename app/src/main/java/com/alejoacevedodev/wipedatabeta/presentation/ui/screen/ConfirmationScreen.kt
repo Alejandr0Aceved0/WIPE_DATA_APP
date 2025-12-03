@@ -101,12 +101,27 @@ fun ConfirmationScreen(
                         Text("Método seleccionado:", fontWeight = FontWeight.Bold)
                         Text(state.selectedMethod?.name ?: "Ninguno")
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            "Carpetas a borrar (${state.selectedFolders.size}):",
-                            fontWeight = FontWeight.Bold
-                        )
-                        state.selectedFolders.forEach {
-                            Text("- ${it.path?.substringAfterLast('/')}", fontSize = 14.sp)
+
+                        if (state.packageName.isNotEmpty()) {
+                            Text(
+                                "Paquetes a borrar (${state.packageName}):",
+                                fontWeight = FontWeight.Bold
+                            )
+                            state.selectedFolders.forEach {
+                                Text("- ${it.path?.substringAfterLast('/')}", fontSize = 14.sp)
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+
+                        if (state.selectedFolders.size > 0) {
+                            Text(
+                                "Carpetas a borrar (${state.selectedFolders.size}):",
+                                fontWeight = FontWeight.Bold
+                            )
+                            state.selectedFolders.forEach {
+                                Text("- ${it.path?.substringAfterLast('/')}", fontSize = 14.sp)
+                            }
                         }
                     }
                 }
@@ -115,7 +130,10 @@ fun ConfirmationScreen(
 
                 // Botón Confirmar
                 Button(
-                    onClick = { viewModel.executeWipe() },
+                    onClick = {
+                        viewModel.executeWipe()
+                        if (state.packageName.isNotEmpty()) viewModel.executeShizukuWipe(state.packageName)
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                     modifier = Modifier
                         .fillMaxWidth()

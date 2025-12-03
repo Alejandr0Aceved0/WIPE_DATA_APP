@@ -26,9 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.alejoacevedodev.wipedatabeta.presentation.viewmodel.WipeViewModel
 import com.alejoacevedodev.wipedatabeta.R
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.ShizukuWipeSection
+import com.alejoacevedodev.wipedatabeta.presentation.viewmodel.WipeViewModel
 
 @Composable
 fun OriginSelectionScreen(
@@ -105,75 +105,114 @@ fun OriginSelectionScreen(
         }
 
         // Contenido Principal
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Selección del origen de borrado",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(24.dp))
 
-            // --- BOTONES DE ORIGEN ---
-            OriginCard("Memoria Interna", ButtonGray) { folderPickerLauncher.launch(null) }
-            Spacer(modifier = Modifier.height(12.dp))
-            OriginCard("Memoria Externa", ButtonGray) { folderPickerLauncher.launch(null) }
-            Spacer(modifier = Modifier.height(12.dp))
-            OriginCard("Tarjeta SD", ButtonGray) { folderPickerLauncher.launch(null) }
-            Spacer(modifier = Modifier.height(12.dp))
-            OriginCard("MOVER ARCHIVOS", ButtonGray) { viewModel.moveAllDataToMedia(context = context) }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- LISTA DE CARPETAS ---
-            if (state.selectedFolders.isNotEmpty()) {
-                Text("Carpetas seleccionadas:", fontWeight = FontWeight.Bold, color = HeaderBlue)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(state.selectedFolders, key = { it.toString() }) { uri ->
-                        FolderItem(uri, onRemove = { viewModel.onRemoveFolder(uri) })
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = onNavigateToMethods,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = HeaderBlue),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Continuar a Métodos", color = Color.White, fontSize = 16.sp)
-                }
-            } else {
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                ShizukuWipeSection(viewModel = viewModel, headerColor = HeaderBlue)
+            // 1. Título General
+            item {
+                Text(
+                    "Selección del origen de borrado",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(24.dp))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Versión\n1.0.12.1", textAlign = TextAlign.Center, color = Color.Gray, fontSize = 12.sp)
+            // 2. Opción 1: BORRADO DE PAQUETES (SHIZUKU)
+            item {
+                ShizukuWipeSection(viewModel = viewModel, headerColor = HeaderBlue, onNavigateToMethods = onNavigateToMethods)
+            }
+
+            // 3. Opción 2: BORRADO DE ARCHIVOS/CARPETAS (SAF)
+            item {
+                Text(
+                    text = "Opción 2 – Borrado Seguro desde Archivos o Carpetas",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = HeaderBlue
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Botones de Origen
+                OriginCard("Memoria Interna", ButtonGray) { folderPickerLauncher.launch(null) }
+                Spacer(modifier = Modifier.height(12.dp))
+                OriginCard("Memoria Externa", ButtonGray) { folderPickerLauncher.launch(null) }
+                Spacer(modifier = Modifier.height(12.dp))
+                OriginCard("Tarjeta SD", ButtonGray) { folderPickerLauncher.launch(null) }
+                Spacer(modifier = Modifier.height(12.dp))
+                // Botón MOVER ARCHIVOS
+                OriginCard(
+                    "MOVER ARCHIVOS",
+                    ButtonGray
+                ) { viewModel.moveAllDataToMedia(context = context) }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            // 4. Lista de Carpetas Seleccionadas (Si hay ítems)
+            if (state.selectedFolders.isNotEmpty()) {
+                item {
+                    Text(
+                        "Carpetas seleccionadas:",
+                        fontWeight = FontWeight.Bold,
+                        color = HeaderBlue
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                items(state.selectedFolders.toList(), key = { it.toString() }) { uri ->
+                    FolderItem(uri, onRemove = { viewModel.onRemoveFolder(uri) })
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onNavigateToMethods,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = HeaderBlue),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Continuar a Métodos", color = Color.White, fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+
+            // 5. Pie de página
+            item {
+                Text(
+                    "Versión\n1.0.12.1",
+                    textAlign = TextAlign.Center,
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
         }
     }
 }
+
 
 @Composable
 fun OriginCard(title: String, color: Color, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = color),
-        modifier = Modifier.fillMaxWidth().height(60.dp).clickable { onClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -192,7 +231,9 @@ fun OriginCard(title: String, color: Color, onClick: () -> Unit) {
 @Composable
 fun FolderItem(uri: Uri, onRemove: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
         shape = RoundedCornerShape(8.dp)
     ) {
@@ -208,7 +249,12 @@ fun FolderItem(uri: Uri, onRemove: () -> Unit) {
                 color = Color.Black
             )
             IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Quitar", tint = Color.Red, modifier = Modifier.size(20.dp))
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Quitar",
+                    tint = Color.Red,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
