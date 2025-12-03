@@ -15,6 +15,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alejoacevedodev.wipedatabeta.data.dataStore.SessionDataStore
 import com.alejoacevedodev.wipedatabeta.data.model.WipeResult
 import com.alejoacevedodev.wipedatabeta.domain.model.WipeMethod
 import com.alejoacevedodev.wipedatabeta.domain.repository.ILogRepository
@@ -28,7 +29,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -40,6 +43,7 @@ import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.pow
 
+
 // NOTA: Se asumen las interfaces y data classes: WipeUiState, WipeMethod, WipeLog, ILogRepository, WipeResult
 // ------------------------------------------------------------------------
 
@@ -48,7 +52,8 @@ class WipeViewModel @Inject constructor(
     private val application: Application,
     private val performWipeUseCase: PerformWipeUseCase,
     private val getLogsUseCase: GetLogsUseCase,
-    private val logRepository: ILogRepository
+    private val logRepository: ILogRepository,
+    private val sessionDataStore: SessionDataStore
 ) : ViewModel() {
 
     // --- ESTADOS ---
@@ -597,6 +602,25 @@ class WipeViewModel @Inject constructor(
     fun isFolderSelected(isFolderSelected: Boolean) {
         _uiState.update { currentState ->
             currentState.copy(isFolderSelected = isFolderSelected)
+        }
+    }
+
+    val isLoggedIn = sessionDataStore.isLoggedInFlow.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        false
+    )
+
+    fun loginSuccess(username: String) {
+        viewModelScope.launch {
+            setLoginUser(username)
+            sessionDataStore.setLoggedIn(true)
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            sessionDataStore.setLoggedIn(false)
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.alejoacevedodev.wipedatabeta.presentation.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -32,15 +34,21 @@ fun AppNavigation() {
         }
     }
 
-    NavHost(navController = navController, startDestination = "login") {
+    val isLoggedIn by sharedViewModel.isLoggedIn.collectAsState()
+
+    NavHost(
+        navController = navController,
+        startDestination = if (isLoggedIn) "origins" else "login"
+    ) {
 
         // 1. LOGIN
         composable("login") {
             LoginScreen(
                 onLoginSuccess = { userName ->
-                    // Guardamos el usuario en el ViewModel
-                    sharedViewModel.setLoginUser(userName)
-                    navController.navigate("origins")
+                    sharedViewModel.loginSuccess(userName)
+                    navController.navigate("origins") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 }
             )
         }

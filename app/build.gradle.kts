@@ -91,8 +91,11 @@ dependencies {
     implementation(libs.material)
 
     // --- Shizuku ---
-    implementation("dev.rikka.shizuku:api:12.1.0")
-    implementation("dev.rikka.shizuku:provider:12.1.0")
+    implementation(libs.api)
+    implementation(libs.provider)
+
+    // DataStore Preferences
+    implementation(libs.androidx.datastore.preferences)
 
     // --- Testing ---
     testImplementation(libs.junit)

@@ -80,7 +80,10 @@ fun OriginSelectionScreen(
                     Icon(Icons.Filled.Settings, contentDescription = "Configurar FTP", tint = Color.White)
                 }
                 Spacer(modifier = Modifier.width(4.dp))
-                IconButton(onClick = { onNavigateHome() }) {
+                IconButton(onClick = {
+                    onNavigateHome()
+                    viewModel.logout()
+                }) {
                     Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir", tint = Color.White)
                 }
             }

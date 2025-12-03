@@ -3,6 +3,8 @@
 # Versiones para los plugins de Gradle
 agp = "8.4.1"                # Última versión estable de Android Gradle Plugin
 androidxDocumentfile = "1.0.1"
+api = "12.1.0"
+datastorePreferences = "1.1.1"
 kotlin = "2.0.21"             # Última versión estable de Kotlin
 ksp = "2.0.21-1.0.27"       # KSP debe coincidir con la versión de Kotlin
 hilt = "2.52"
@@ -17,6 +19,7 @@ hiltNavigationCompose = "1.2.0"
 # --- AndroidX & Core ---
 coreKtx = "1.13.1"           # Corregido (1.17.0 no existe)
 lifecycle = "2.8.2"          # Corregido (2.9.4 no existe)
+provider = "12.1.0"
 room = "2.6.1"
 material = "1.12.0"
 documentfile = "1.0.1"
@@ -35,8 +38,10 @@ commonsNet = "3.10.0"
 [libraries]
 # --- AndroidX Core, Lifecycle & Material ---
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+api = { module = "dev.rikka.shizuku:api", version.ref = "api" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 # --- Compose (BOM y dependencias) ---
@@ -55,6 +60,7 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.r
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 # --- Room (Base de Datos) ---
+provider = { module = "dev.rikka.shizuku:provider", version.ref = "provider" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
