@@ -525,52 +525,65 @@ class WipeViewModel @Inject constructor(
             return
         }
 
-        // 🔑 DESGLOSE DEL COMANDO PARA Shizuku.newProcess
         val sourcePath = "/storage/emulated/0/Android/data/*"
-        val destPath = "/storage/emulated/0/Android/media"
-        val fullShellCommand = "mv $sourcePath $destPath"
-
-// 🔑 CORRECCIÓN CLAVE: Usar sh -c para forzar la expansión del comodín
-        val command = arrayOf(
-            "sh",
-            "-c",
-            fullShellCommand // El comando completo va como un solo argumento
-        )
+        val mediaDir = "/storage/emulated/0/Android/media"
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // 1. Ejecutar el movimiento (mv) con Shizuku.newProcess
-                val process = Shizuku.newProcess(command, null, null)
-                val output = BufferedReader(InputStreamReader(process.inputStream)).use {
+                // 1. Verificar si existe Android/media
+                val checkCommand = arrayOf("sh", "-c", "[ -d \"$mediaDir\" ] && echo EXISTS || echo NO")
+                val checkProcess = Shizuku.newProcess(checkCommand, null, null)
+
+                val existsOutput = BufferedReader(InputStreamReader(checkProcess.inputStream)).use {
                     it.readText().trim()
                 }
-                val error = BufferedReader(InputStreamReader(process.errorStream)).use {
-                    it.readText().trim()
+                checkProcess.waitFor()
+
+                // 2. Si no existe, crearla con mkdir -p
+                if (existsOutput != "EXISTS") {
+                    val mkdirCommand = arrayOf("sh", "-c", "mkdir -p \"$mediaDir\"")
+                    val mkdirProcess = Shizuku.newProcess(mkdirCommand, null, null)
+                    val mkdirExit = mkdirProcess.waitFor()
+
+                    if (mkdirExit != 0) {
+                        Handler(Looper.getMainLooper()).post {
+                            Toast.makeText(
+                                context,
+                                "Error creando carpeta Android/media",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        return@launch
+                    }
                 }
+
+                // 3. Ejecutar mv
+                val fullShellCommand = "mv $sourcePath \"$mediaDir\""
+                val moveCommand = arrayOf("sh", "-c", fullShellCommand)
+                val process = Shizuku.newProcess(moveCommand, null, null)
+
+                val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText().trim() }
+                val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText().trim() }
                 val exitCode = process.waitFor()
 
-                // 2. Reportar resultado
                 Handler(Looper.getMainLooper()).post {
                     if (exitCode == 0 && error.isEmpty()) {
-                        Log.i("ShizukuMove", "Comando de movimiento EXITOSO.")
                         Toast.makeText(
                             context,
-                            "Movimiento EXITOSO a Android/media.",
+                            "Movimiento COMPLETADO a Android/media.",
                             Toast.LENGTH_LONG
                         ).show()
                     } else {
-                        val errorMessage =
-                            if (error.isNotBlank()) error else "Fallo al mover datos. Código: $exitCode. Output: $output"
-                        Log.e("ShizukuMove", errorMessage)
                         Toast.makeText(
                             context,
-                            "MOVIMIENTO FALLIDO. Ver Logcat.",
+                            "Error moviendo datos. Ver Logcat.",
                             Toast.LENGTH_LONG
                         ).show()
                     }
                 }
+
             } catch (e: Exception) {
-                logAndToast(context, "Excepción al ejecutar comando: ${e.message}", isError = true)
+                logAndToast(context, "Excepción: ${e.message}", isError = true)
             }
         }
     }
