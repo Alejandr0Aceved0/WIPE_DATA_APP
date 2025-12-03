@@ -473,15 +473,20 @@ class WipeViewModel @Inject constructor(
     }
 
     fun checkShizukuStatus() {
-        // 1. Verificar si el binder está vivo (Shizuku App está activo)
-        val isBinderActive = Shizuku.pingBinder()
+        // 🔑 CORRECCIÓN: Usar pingBinder() como protección de acceso al servicio.
+        if (!Shizuku.pingBinder()) {
+            // El servicio de Shizuku (App Server) no está corriendo o conectado.
+            _isShizukuPermitted.value = false
+            // No es necesario lanzar un Toast o Log aquí, ya que el Composable lo maneja
+            return
+        }
 
-        // 2. Verificar si el permiso ya fue concedido a esta app.
+        // Si el Binder está vivo, entonces es seguro llamar a checkSelfPermission
         val permissionResult = Shizuku.checkSelfPermission()
 
-        val isGranted = isBinderActive && (permissionResult == PackageManager.PERMISSION_GRANTED)
+        val isGranted = (permissionResult == PackageManager.PERMISSION_GRANTED)
 
-        // 3. Actualizar el estado del ViewModel.
+        // Actualizar el estado del ViewModel.
         _isShizukuPermitted.value = isGranted
     }
 
