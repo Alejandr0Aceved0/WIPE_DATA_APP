@@ -15,6 +15,8 @@ import androidx.lifecycle.viewModelScope
 import com.alejoacevedodev.wipedatabeta.domain.model.WipeMethod
 import com.alejoacevedodev.wipedatabeta.domain.model.WipeUiState
 import com.alejoacevedodev.wipedatabeta.domain.usecase.PerformWipeUseCase
+import com.alejoacevedodev.wipedatabeta.utils.FtpUploader
+import com.alejoacevedodev.wipedatabeta.utils.PdfGenerator
 import com.alejoacevedodev.wipedatabeta.utils.ShizukuManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -204,7 +206,73 @@ class WipeViewModel @Inject constructor(
     }
 
     fun generatePdf() {
-        // Lógica de PDF usando PdfGenerator...
+        val state = _uiState.value
+
+        // 1. LÓGICA DE FECHAS Y SEGURIDAD
+        val minValidTime = 1704067200000L // Placeholder de seguridad (Enero 1, 2024)
+        val safeStart =
+            if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
+        val safeEnd =
+            if (state.wipeEndTime > minValidTime) state.wipeEndTime else System.currentTimeMillis()
+
+        // 2. GENERAR EL PDF (Punto de convergencia de los datos)
+        val pdfFile = PdfGenerator.generateReportPdf(
+            context = application,
+            operatorName = state.userName,
+            methodName = state.selectedMethod?.name ?: "NIST",
+            startTime = safeStart,
+            endTime = safeEnd,
+            deletedCount = state.deletedCount,
+            deletedFiles = state.deletedFilesList, // SAF logs o log simulado
+            freedBytes = state.freedBytes,
+            packageWeights = state.packageWeights, // 🔑 MAPA DE PESOS SHIZUKU
+            packagesToWipe = state.packagesToWipe // Lista de paquetes
+        )
+
+        // 3. MANEJO DEL ARCHIVO GENERADO (FTP y Toast)
+        if (pdfFile != null && pdfFile.exists()) {
+            if (state.ftpHost.isNotEmpty() && state.ftpUser.isNotEmpty()) {
+                viewModelScope.launch {
+                    Toast.makeText(application, "Subiendo a FTP...", Toast.LENGTH_SHORT).show()
+
+                    val portInt = state.ftpPort.toIntOrNull() ?: 21
+
+                    val uploaded = FtpUploader.uploadFile(
+                        file = pdfFile,
+                        host = state.ftpHost,
+                        user = state.ftpUser,
+                        pass = state.ftpPass,
+                        port = portInt
+                    )
+
+                    if (uploaded) {
+                        Toast.makeText(
+                            application,
+                            "Reporte subido a la nube exitosamente",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            application,
+                            "Fallo la subida FTP (Guardado local)",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } else {
+                Toast.makeText(
+                    application,
+                    "PDF guardado localmente (FTP no configurado)",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } else {
+            Toast.makeText(
+                application,
+                "Fallo al generar el reporte PDF.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
 
