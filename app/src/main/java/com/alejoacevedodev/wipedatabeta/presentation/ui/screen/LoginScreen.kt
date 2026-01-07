@@ -151,7 +151,7 @@ fun LoginScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_mail),
                                 contentDescription = null,
-                                tint = InputBorderColor
+                                tint = Color.Unspecified
                             )
                         },
                         shape = RoundedCornerShape(25.dp),
@@ -181,7 +181,7 @@ fun LoginScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_lock),
                                 contentDescription = null,
-                                tint = InputBorderColor
+                                tint = Color.Unspecified
                             )
                         },
                         trailingIcon = {
@@ -191,7 +191,7 @@ fun LoginScreen(
                                 Icon(
                                     painter = painterResource(id = image),
                                     contentDescription = null,
-                                    tint = InputBorderColor
+                                    tint = if (passwordVisible) InputBorderColor else Color.Unspecified
                                 )
                             }
                         },
