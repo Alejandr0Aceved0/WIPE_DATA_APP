@@ -11,7 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.alejoacevedodev.wipedatabeta.presentation.PermissionRequestScreen
 import com.alejoacevedodev.wipedatabeta.presentation.ui.navigation.AppNavigation
-import com.alejoacevedodev.wipedatabeta.presentation.viewmodel.WipeViewModel
+import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 
 @Composable
 fun MainScreen(

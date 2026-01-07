@@ -2,7 +2,7 @@ package com.alejoacevedodev.wipedatabeta.domain.usecase
 
 import android.net.Uri
 import com.alejoacevedodev.wipedatabeta.data.model.WipeResult
-import com.alejoacevedodev.wipedatabeta.data.repository.IWipeRepository
+import com.alejoacevedodev.wipedatabeta.domain.repository.IWipeRepository
 import com.alejoacevedodev.wipedatabeta.domain.model.WipeLog
 import com.alejoacevedodev.wipedatabeta.domain.model.WipeMethod
 import com.alejoacevedodev.wipedatabeta.domain.repository.ILogRepository

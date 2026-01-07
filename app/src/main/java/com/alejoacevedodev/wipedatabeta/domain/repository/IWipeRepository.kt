@@ -1,4 +1,4 @@
-package com.alejoacevedodev.wipedatabeta.data.repository
+package com.alejoacevedodev.wipedatabeta.domain.repository
 
 import android.net.Uri
 import com.alejoacevedodev.wipedatabeta.data.model.WipeResult

@@ -1,7 +1,6 @@
-package com.alejoacevedodev.wipedatabeta.presentation.viewmodel
+package com.alejoacevedodev.wipedatabeta.domain.model
 
 import android.net.Uri
-import com.alejoacevedodev.wipedatabeta.domain.model.WipeMethod
 
 data class WipeUiState(
     // Selección de Archivos
@@ -31,5 +30,6 @@ data class WipeUiState(
     val packagesToWipe: List<String> = emptyList(),
     val packageWeights: MutableMap<String, Long> = mutableMapOf(),
     val isPackageSelected: Boolean = false,
-    val isFolderSelected: Boolean = false
+    val isFolderSelected: Boolean = false,
+    val isShizukuPermitted: Boolean = false
 )

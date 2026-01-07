@@ -43,17 +43,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.R
+import com.alejoacevedodev.wipedatabeta.presentation.auth.AuthViewModel
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.ShizukuWipeSection
-import com.alejoacevedodev.wipedatabeta.presentation.viewmodel.WipeViewModel
+import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 
 @Composable
 fun OriginSelectionScreen(
-    viewModel: WipeViewModel,
+    wipeViewModel: WipeViewModel,
+    authViewModel : AuthViewModel,
     onNavigateToMethods: () -> Unit,
     onNavigateHome: () -> Unit,
     onConfigureFtp: () -> Unit
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by wipeViewModel.uiState.collectAsState()
     val HeaderBlue = Color(0xFF2B4C6F)
     val ButtonGray = Color(0xFFE0E0E0)
     val context = LocalContext.current
@@ -62,7 +64,7 @@ fun OriginSelectionScreen(
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
         onResult = { uri ->
-            if (uri != null) viewModel.onFolderSelected(uri)
+            if (uri != null) wipeViewModel.onFolderSelected(uri)
         }
     )
 
@@ -98,7 +100,7 @@ fun OriginSelectionScreen(
                 Spacer(modifier = Modifier.width(4.dp))
                 IconButton(onClick = {
                     onNavigateHome()
-                    viewModel.logout()
+                    authViewModel.logout()
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir", tint = Color.White)
                 }
@@ -127,7 +129,7 @@ fun OriginSelectionScreen(
             // 2. Opción 1: BORRADO DE PAQUETES (SHIZUKU)
             item {
                 ShizukuWipeSection(
-                    viewModel = viewModel,
+                    viewModel = wipeViewModel,
                     headerColor = HeaderBlue,
                     onNavigateToMethods = onNavigateToMethods
                 )
@@ -158,7 +160,7 @@ fun OriginSelectionScreen(
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                OriginCard("MOVER ARCHIVOS", ButtonGray) { viewModel.moveAllDataToMedia(context = context) }
+                OriginCard("MOVER ARCHIVOS", ButtonGray) { wipeViewModel.moveAllDataToMedia(context = context) }
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
@@ -177,7 +179,7 @@ fun OriginSelectionScreen(
 
                 // 4a. LISTA DE CARPETAS SAF
                 items(state.selectedFolders.toList(), key = { it.toString() }) { uri ->
-                    FolderItem(uri, onRemove = { viewModel.onRemoveFolder(uri) })
+                    FolderItem(uri, onRemove = { wipeViewModel.onRemoveFolder(uri) })
                 }
 
 
@@ -188,8 +190,8 @@ fun OriginSelectionScreen(
                     Button(
                         onClick = {
                             // 🔑 Prepara los flags y navega
-                            viewModel.isPackageSelected(state.packagesToWipe.isNotEmpty())
-                            viewModel.isFolderSelected(state.selectedFolders.isNotEmpty())
+                            wipeViewModel.isPackageSelected(state.packagesToWipe.isNotEmpty())
+                            wipeViewModel.isFolderSelected(state.selectedFolders.isNotEmpty())
                             onNavigateToMethods()
                         },
                         modifier = Modifier

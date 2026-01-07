@@ -7,6 +7,7 @@ import android.provider.OpenableColumns
 import android.util.Log
 import com.alejoacevedodev.wipedatabeta.data.model.WipeResult
 import com.alejoacevedodev.wipedatabeta.domain.model.WipeMethod
+import com.alejoacevedodev.wipedatabeta.domain.repository.IWipeRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.FileOutputStream
