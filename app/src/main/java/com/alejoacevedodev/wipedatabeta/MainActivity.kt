@@ -11,7 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import com.alejoacevedodev.wipedatabeta.presentation.ui.screen.MainScreen
-import com.alejoacevedodev.wipedatabeta.presentation.ui.theme.WipeDataTestTheme
+import com.alejoacevedodev.wipedatabeta.ui.theme.WIPE_DATA_BETATheme
 import dagger.hilt.android.AndroidEntryPoint
 import rikka.shizuku.Shizuku
 
@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
 
         setContent {
-            WipeDataTestTheme {
+            WIPE_DATA_BETATheme {
                 MainScreen(
                     onRequestStoragePermission = { launcher ->
                         requestManageAllFilesPermission(launcher)
