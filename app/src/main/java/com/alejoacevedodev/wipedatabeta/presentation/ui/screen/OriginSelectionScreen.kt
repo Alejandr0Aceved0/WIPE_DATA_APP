@@ -4,31 +4,27 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,28 +40,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.R
 import com.alejoacevedodev.wipedatabeta.presentation.auth.AuthViewModel
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CardOption
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.ShizukuWipeSection
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 
 @Composable
 fun OriginSelectionScreen(
     wipeViewModel: WipeViewModel,
-    authViewModel : AuthViewModel,
+    authViewModel: AuthViewModel,
     onNavigateToMethods: () -> Unit,
     onNavigateHome: () -> Unit,
     onConfigureFtp: () -> Unit
 ) {
     val state by wipeViewModel.uiState.collectAsState()
-    val HeaderBlue = Color(0xFF2B4C6F)
-    val ButtonGray = Color(0xFFE0E0E0)
+    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryBlue = Color(0xFF2E61F1)
     val context = LocalContext.current
     val hasItemsToProcess = state.selectedFolders.isNotEmpty() || state.packagesToWipe.isNotEmpty()
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
-        onResult = { uri ->
-            if (uri != null) wipeViewModel.onFolderSelected(uri)
-        }
+        onResult = { uri -> if (uri != null) wipeViewModel.onFolderSelected(uri) }
     )
 
     Column(
@@ -73,190 +69,122 @@ fun OriginSelectionScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(HeaderBlue)
-                .statusBarsPadding()
-                .height(56.dp)
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text(
-                text = "NULLUM Lite",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Row(
-                modifier = Modifier.align(Alignment.CenterEnd),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onConfigureFtp) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Configurar FTP", tint = Color.White)
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-                IconButton(onClick = {
-                    onNavigateHome()
-                    authViewModel.logout()
-                }) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir", tint = Color.White)
-                }
+        CurvedHeader(
+            onSettingsClick = onConfigureFtp,
+            onLogoutClick = {
+                onNavigateHome()
+                authViewModel.logout()
             }
-        }
+        )
 
-        // Contenido Principal
-        LazyColumn(
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(top = 55.dp)
+                .offset(y = (-48).dp), // Efecto de solapamiento sobre el azul
+            color = Color.White,
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
-            // 1. Título General
-            item {
-                Text(
-                    "Selección del origen de borrado",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-
-            // 2. Opción 1: BORRADO DE PAQUETES (SHIZUKU)
-            item {
-                ShizukuWipeSection(
-                    viewModel = wipeViewModel,
-                    headerColor = HeaderBlue,
-                    onNavigateToMethods = onNavigateToMethods
-                )
-            }
-
-            // 3. Opción 2: BORRADO DE ARCHIVOS/CARPETAS (SAF)
-            item {
-                Text(
-                    text = "Opción 2 – Borrado Seguro desde Archivos o Carpetas",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = HeaderBlue
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Botones de Origen SAF
-                OriginCard("Memoria Interna", ButtonGray) { folderPickerLauncher.launch(null) }
-                Spacer(modifier = Modifier.height(12.dp))
-                OriginCard("Memoria Externa", ButtonGray) { folderPickerLauncher.launch(null) }
-                Spacer(modifier = Modifier.height(12.dp))
-                OriginCard("Tarjeta SD", ButtonGray) { folderPickerLauncher.launch(null) }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Nota: Si tu dispositivo no permite visualizar tu ruta Android/data, da clic a mover archivos e intenta nuevamente visualizar en la ruta Android/media.",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OriginCard("MOVER ARCHIVOS", ButtonGray) { wipeViewModel.moveAllDataToMedia(context = context) }
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-
-
-            // 4. LISTA UNIFICADA DE ÍTEMS A PROCESAR
-            if (hasItemsToProcess) {
+                item {
+                    ShizukuWipeSection(
+                        viewModel = wipeViewModel,
+                        headerColor = PrimaryBlue,
+                        onNavigateToMethods = onNavigateToMethods
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
 
                 item {
                     Text(
-                        text = "Ítems a procesar:",
+                        text = "Opción 2 – Borrado Seguro desde Archivos",
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = HeaderBlue
+                        color = PrimaryDarkBlue,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-
-                // 4a. LISTA DE CARPETAS SAF
-                items(state.selectedFolders.toList(), key = { it.toString() }) { uri ->
-                    FolderItem(uri, onRemove = { wipeViewModel.onRemoveFolder(uri) })
-                }
-
 
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    CardOption(
+                        title = "Memoria interna",
+                        curveColor = Color(0xFFE6EEFF),
+                        image = painterResource(id = R.drawable.img_folder)
+                    ) { folderPickerLauncher.launch(null) }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    CardOption(
+                        title = "Memoria Externa",
+                        curveColor = Color(0xFFE6EEFF),
+                        image = painterResource(id = R.drawable.img_folder)
+                    ) { folderPickerLauncher.launch(null) }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    CardOption(
+                        title = "Tarjeta SD",
+                        curveColor = Color(0xFFE6EEFF),
+                        image = painterResource(id = R.drawable.img_folder)
+                    ) { folderPickerLauncher.launch(null) }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
-                    // 5. BOTÓN CONTINUAR
+                item {
+                    Text(
+                        text = "Nota: Si no visualizas Android/data, usa Mover Archivos.",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                     Button(
-                        onClick = {
-                            // 🔑 Prepara los flags y navega
-                            wipeViewModel.isPackageSelected(state.packagesToWipe.isNotEmpty())
-                            wipeViewModel.isFolderSelected(state.selectedFolders.isNotEmpty())
-                            onNavigateToMethods()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = HeaderBlue),
-                        shape = RoundedCornerShape(8.dp)
+                        onClick = { wipeViewModel.moveAllDataToMedia(context) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Continuar a Métodos", color = Color.White, fontSize = 16.sp)
+                        Text("MOVER ARCHIVOS", color = Color.DarkGray, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
-            } else {
+
+                if (hasItemsToProcess) {
+                    items(state.selectedFolders.toList()) { uri ->
+                        FolderItem(uri, onRemove = { wipeViewModel.onRemoveFolder(uri) })
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Button(
+                            onClick = onNavigateToMethods,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(55.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                            shape = RoundedCornerShape(25.dp)
+                        ) {
+                            Text(
+                                "Continuar a Métodos",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
                 item {
-                    Spacer(modifier = Modifier.height(100.dp))
+                    Spacer(modifier = Modifier.height(40.dp))
+                    Text("Versión 1.0.12.1", color = Color.Gray, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
-
-            // 6. Pie de página
-            item {
-                Text(
-                    "Versión\n1.0.12.1",
-                    textAlign = TextAlign.Center,
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
         }
     }
 }
 
-// ----------------------------------------------------------------------
-// --- COMPOSABLES AUXILIARES ---
-// ----------------------------------------------------------------------
-
-@Composable
-fun OriginCard(title: String, color: Color, onClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = color),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp)
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.folder),
-                contentDescription = null,
-                tint = Color.Black,
-                modifier = Modifier.size(28.dp)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(text = title, fontSize = 16.sp, color = Color.Black)
-        }
-    }
-}
 
 @Composable
 fun FolderItem(uri: Uri, onRemove: () -> Unit) {

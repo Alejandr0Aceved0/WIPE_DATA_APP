@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,6 +47,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.R
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import android.util.Log
+import android.widget.Toast
 
 @Composable
 fun LoginScreen(
@@ -59,6 +65,7 @@ fun LoginScreen(
     val BlueGradientEnd = Color(0xFF3B67D6)
     val InputBorderColor = Color(0xFF3B67D6)
     val ButtonColor = Color(0xFF2E61F1)
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -108,7 +115,6 @@ fun LoginScreen(
                 }
             }
 
-            // Sección Inferior: Formulario Blanco
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -236,9 +242,39 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Botón Ingresar
                     Button(
-                        onClick = { onLoginSuccess(username) },
+                        onClick = {
+
+                            Log.d("LoginScreen", "Intentando ingresar con usuario: $username")
+
+                            if (username.isBlank() || password.isBlank()) {
+                                Toast.makeText(
+                                    context,
+                                    "Por favor, complete todos los campos.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@Button
+                            }
+
+                            val currentDate = SimpleDateFormat(
+                                "dd/MM/yyyy",
+                                Locale.getDefault()
+                            ).format(Date())
+
+                            val expectedUser = "Prueba2025"
+                            val expectedPass = "Prueba2025.*$currentDate"
+
+                            if (username == expectedUser && password == expectedPass) {
+                                onLoginSuccess(username) // Pasamos el nombre de usuario al callback
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Credenciales incorrectas.\nLa contraseña cambia según la fecha.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(55.dp),
@@ -295,8 +331,6 @@ fun LabelText(text: String) {
         fontWeight = FontWeight.Medium
     )
 }
-
-
 
 @Composable
 @Preview
