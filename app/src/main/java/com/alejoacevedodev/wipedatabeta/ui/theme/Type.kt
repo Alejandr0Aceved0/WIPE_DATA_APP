@@ -15,6 +15,11 @@ val CustomFontFamily = FontFamily(
     Font(R.font.league_spartan_bold, FontWeight.Bold)
 )
 
+val FormFontFamily = FontFamily(
+    Font(R.font.lato_regular, FontWeight.Normal),
+    Font(R.font.lato_bold, FontWeight.Bold)
+)
+
 val Typography = Typography(
     bodyLarge = TextStyle(
         fontFamily = CustomFontFamily,
@@ -25,6 +30,39 @@ val Typography = Typography(
     ),
     titleLarge = TextStyle(
         fontFamily = CustomFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp
+    )
+
+    /* Other default text styles to override
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
+    )
+    */
+)
+
+
+val TypographyInform = Typography(
+    bodyLarge = TextStyle(
+        fontFamily = FormFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = FormFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp
     )

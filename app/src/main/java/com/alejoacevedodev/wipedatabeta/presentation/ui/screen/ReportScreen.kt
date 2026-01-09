@@ -3,16 +3,28 @@ package com.alejoacevedodev.wipedatabeta.presentation.ui.screen
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,10 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alejoacevedodev.wipedatabeta.domain.model.WipeUiState
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
+import com.alejoacevedodev.wipedatabeta.ui.theme.FormFontFamily
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -38,12 +53,14 @@ fun ReportScreen(
     onNavigateHome: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    val _uiState = MutableStateFlow(WipeUiState())
 
-    val HeaderBlue = Color(0xFF2B4C6F)
+    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryBlue = Color(0xFF2E61F1)
     val SuccessGreen = Color(0xFF4CAF50)
-    val BackgroundColor = Color.White
 
-    // --- LÓGICA DE FECHAS Y DURACIÓN PRECISA ---
+    // --- LÓGICA DE FECHAS Y DURACIÓN (Se mantiene tu lógica funcional) ---
+
     val minValidTime = 1704067200000L
     val startTime =
         if (state.wipeStartTime > minValidTime) state.wipeStartTime else System.currentTimeMillis()
@@ -76,190 +93,178 @@ fun ReportScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
-            .padding(WindowInsets.statusBars.asPaddingValues())
+            .background(Color.White)
     ) {
-
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // 1. ENCABEZADO
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .background(HeaderBlue)
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(
-                    text = "NULLUM Lite",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(
-                    onClick = onNavigateHome,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = "Salir",
-                        tint = Color.White
-                    )
-                }
-            }
+            // 1. HEADER CURVO (Consistente con el resto de la app)
+            CurvedHeader(
+                onSettingsClick = {},
+                onLogoutClick = onNavigateHome
+            )
 
-            // 2. CONTENIDO DEL REPORTE
-            Column(
+            Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp)
+                    .padding(top = 50.dp)
+                    .offset(y = (-48).dp), // Efecto de solapamiento sobre el azul
+                color = Color.White,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = null,
-                        tint = SuccessGreen,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    // 2. ICONO DE ÉXITO CENTRAL
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(SuccessGreen, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     Text(
-                        text = "Borrado Exitoso",
+                        text = "Borrado exitoso",
                         color = SuccessGreen,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        fontFamily = FormFontFamily,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold
                     )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // 3. TÍTULO DEL INFORME
+                    Text(
+                        text = "Informe del evento",
+                        fontFamily = FormFontFamily,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PrimaryDarkBlue,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // --- SECCIONES DE DATOS ESTILIZADAS ---
+
+                    // ATRIBUTOS
+                    ReportSectionTitleFigma("Atributos", PrimaryBlue)
+                    ReportItemFigma("Método de Borrado:", state.selectedMethod?.name ?: "NIST 800-88")
+                    ReportItemFigma("Verificación:", "100%") // Según Figma
+                    ReportItemFigma("Integridad del Proceso:", "100%")
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // INFO DISPOSITIVO
+                    ReportSectionTitleFigma("Información del Dispositivo", PrimaryBlue)
+                    ReportItemFigma("Modelo:", Build.MODEL)
+                    ReportItemFigma("Fabricante:", Build.MANUFACTURER)
+                    ReportItemFigma("Plataforma:", "Android ${Build.VERSION.RELEASE}")
+                    ReportItemFigma("Capacidad Total:", storageInfo.total)
+                    ReportItemFigma("Espacio Disponible:", storageInfo.available)
+                    ReportItemFigma("Espacio Liberado:", freedBytesStr)
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // RESULTADOS
+                    ReportSectionTitleFigma("Resultados", PrimaryBlue)
+                    ReportItemFigma("Estado:", "Completo")
+                    ReportItemFigma("Items Eliminados:", "${state.deletedFilesList.size}")
+                    ReportItemFigma("Inicio:", startDateStr)
+                    ReportItemFigma("Fin:", endDateStr)
+                    ReportItemFigma("Duración:", durationFormatted)
+                    ReportItemFigma("Timestamp Inicio (ms):", "$startTime")
+                    ReportItemFigma("Timestamp Fin (ms):", "$endTime")
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // 4. BOTONES (Estilo Píldora de Figma)
+                    Button(
+                        onClick = { viewModel.generatePdf() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(28.dp)
+                    ) {
+                        Text("Descargar Certificado PDF", color = Color.White, fontFamily = FormFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            viewModel.resetWipeStatus()
+                            onNavigateHome()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(28.dp)
+                    ) {
+                        Text("Eliminar otro elemento", color = Color.White, fontFamily = FormFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("Versión 1.0.12.1", fontFamily = FormFontFamily, color = Color.Gray, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    "Informe del evento:",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // ATRIBUTOS
-                ReportSectionTitle("Atributos")
-                ReportItem("Método:", state.selectedMethod?.name ?: "NIST 800-88")
-                ReportItem("Verificación:", "100%")
-                ReportItem("Integridad:", "100%")
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // INFO DISPOSITIVO
-                ReportSectionTitle("Información del Dispositivo")
-                ReportItem("Modelo:", Build.MODEL)
-                ReportItem("Fabricante:", Build.MANUFACTURER)
-                ReportItem("Plataforma:", "Android ${Build.VERSION.RELEASE}")
-                ReportItem("Capacidad Total:", storageInfo.total)
-                ReportItem("Espacio Disponible:", storageInfo.available)
-                ReportItem("Espacio Liberado:", freedBytesStr, valueColor = SuccessGreen)
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // RESULTADOS (Con extra detalle)
-                ReportSectionTitle("Resultados")
-                ReportItem("Estado:", "COMPLETADO")
-                ReportItem("Items Eliminados:", "${state.deletedCount}")
-
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray)
-
-                // Tiempos detallados
-                ReportItem("Inicio:", startDateStr)
-                ReportItem("Fin:", endDateStr)
-                ReportItem(
-                    "Duración:",
-                    durationFormatted,
-                    valueColor = Color.Blue
-                ) // Destacamos la duración
-
-                // Datos técnicos (Long)
-                ReportItem("Timestamp Inicio (ms):", "$startTime", fontSize = 12.sp)
-                ReportItem("Timestamp Fin (ms):", "$endTime", fontSize = 12.sp)
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // BOTONES
-                Button(
-                    onClick = { viewModel.generatePdf() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = HeaderBlue),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Descargar Certificado PDF", color = Color.White, fontSize = 16.sp)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedButton(
-                    onClick = {
-                        onNavigateHome()
-                        viewModel.resetUiState()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, HeaderBlue)
-                ) {
-                    Text("Volver al Inicio", color = HeaderBlue)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    "Versión\n1.0.12.1",
-                    textAlign = TextAlign.Center,
-                    color = Color.Gray,
-                    fontSize = 12.sp,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
 @Composable
-fun ReportSectionTitle(title: String) {
+fun ReportSectionTitleFigma(title: String, color: Color) {
     Text(
         text = title,
-        fontSize = 16.sp,
+        fontSize = 20.sp,
+        fontFamily = FormFontFamily,
         fontWeight = FontWeight.Bold,
-        color = Color.Black
+        color = color,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 3.dp)
     )
-    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable
-fun ReportItem(
-    label: String,
-    value: String,
-    valueColor: Color = Color.DarkGray,
-    fontSize: androidx.compose.ui.unit.TextUnit = 14.sp // Para hacer más pequeños los timestamps si quieres
-) {
+fun ReportItemFigma(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
+            .padding(vertical = 0.5.dp),
+        verticalAlignment = Alignment.Top
     ) {
         Text(
             text = "$label ",
-            fontSize = fontSize,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 15.sp,
+            fontFamily = FormFontFamily,
+            fontWeight = FontWeight.Normal,
             color = Color.Black
         )
         Text(
             text = value,
-            fontSize = fontSize,
-            color = valueColor,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.End // Alineamos valores a la derecha para que se vea más ordenado
+            fontSize = 15.sp,
+            fontFamily = FormFontFamily,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            modifier = Modifier.weight(1f)
         )
     }
 }

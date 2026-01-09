@@ -235,7 +235,7 @@ object PdfGenerator {
         y = drawRow(
             canvas,
             "Espacio Liberado:",
-            formatFileSize(freedBytes, packageWeights),
+            formatFileSize(freedBytes),
             margin,
             rightMargin,
             y,
@@ -280,7 +280,7 @@ object PdfGenerator {
         y = drawRow(
             canvas,
             "Items Eliminados:",
-            "$deletedCount archivos/carpetas",
+            "${deletedFiles.size} archivos/carpetas",
             margin,
             rightMargin,
             y,
