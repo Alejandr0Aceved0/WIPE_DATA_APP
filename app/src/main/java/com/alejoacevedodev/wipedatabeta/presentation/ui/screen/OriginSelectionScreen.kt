@@ -1,6 +1,9 @@
 package com.alejoacevedodev.wipedatabeta.presentation.ui.screen
 
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -29,6 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,12 +44,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import com.alejoacevedodev.wipedatabeta.R
 import com.alejoacevedodev.wipedatabeta.presentation.auth.AuthViewModel
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CardOption
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.ShizukuInstallBanner
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.ShizukuWipeSection
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
+import java.io.File
 
 @Composable
 fun OriginSelectionScreen(
@@ -54,10 +63,15 @@ fun OriginSelectionScreen(
     onConfigureFtp: () -> Unit
 ) {
     val state by wipeViewModel.uiState.collectAsState()
-    val PrimaryDarkBlue = Color(0xFF1A3365)
-    val PrimaryBlue = Color(0xFF2E61F1)
+    val primaryDarkBlue = Color(0xFF1A3365)
+    val primaryBlue = Color(0xFF2E61F1)
     val context = LocalContext.current
     val hasItemsToProcess = state.selectedFolders.isNotEmpty() || state.packagesToWipe.isNotEmpty()
+
+    // Estado para saber si Shizuku está instalado
+    var isShizukuInstalled by remember {
+        mutableStateOf(AppInstaller.isShizukuInstalled(context))
+    }
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -69,6 +83,15 @@ fun OriginSelectionScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
+
+        if (!isShizukuInstalled) {
+            ShizukuInstallBanner(
+                onInstallClick = {
+                    AppInstaller.installShizukuFromAssets(context)
+                }
+            )
+        }
+
         CurvedHeader(
             settingsAvailable = true,
             onSettingsClick = onConfigureFtp,
@@ -96,7 +119,7 @@ fun OriginSelectionScreen(
                 item {
                     ShizukuWipeSection(
                         viewModel = wipeViewModel,
-                        headerColor = PrimaryBlue,
+                        headerColor = primaryBlue,
                         onNavigateToMethods = onNavigateToMethods
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -107,7 +130,7 @@ fun OriginSelectionScreen(
                         text = "Opción 2 – Borrado Seguro desde Archivos",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryDarkBlue,
+                        color = primaryDarkBlue,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -164,7 +187,7 @@ fun OriginSelectionScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(55.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryBlue),
                             shape = RoundedCornerShape(25.dp)
                         ) {
                             Text(
@@ -185,6 +208,46 @@ fun OriginSelectionScreen(
         }
     }
 }
+
+
+// Archivo: com.alejoacevedodev.wipedatabeta.util.AppInstaller.kt
+object AppInstaller {
+    fun installShizukuFromAssets(context: Context) {
+        try {
+            // 1. Extraer el APK de assets a la caché interna
+            val inputStream = context.assets.open("shizuku.apk")
+            val file = File(context.cacheDir, "shizuku.apk")
+            file.outputStream().use { inputStream.copyTo(it) }
+
+            // 2. Obtener URI segura mediante FileProvider
+            val contentUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+
+            // 3. Lanzar el instalador del sistema
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri, "application/vnd.android.package-archive")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun isShizukuInstalled(context: Context): Boolean {
+        return try {
+            context.packageManager.getPackageInfo("moe.shizuku.privileged.api", 0)
+            true
+        } catch (e: Exception) {
+            Log.e("AppInstaller", "Shizuku no está instalado: ${e.message}")
+            false
+        }
+    }
+}
+
 
 
 @Composable

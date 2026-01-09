@@ -81,7 +81,7 @@ class WipeViewModel @Inject constructor(
         }
 
         val sourcePath = "/storage/emulated/0/Android/data/*"
-        val mediaDir = "/storage/emulated/0/Android/media"
+        val mediaDir = "/storage/emulated/0/Android/mediadepruebas"
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
