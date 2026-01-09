@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.R
@@ -38,6 +39,7 @@ import com.alejoacevedodev.wipedatabeta.R
 
 @Composable
 fun CurvedHeader(
+    settingsAvailable : Boolean? = false,
     onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
@@ -93,12 +95,14 @@ fun CurvedHeader(
                     .padding(end = 12.dp, top = 6.dp),
                 horizontalArrangement = Arrangement.End
             ) {
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_settings),
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                if (settingsAvailable == true) {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_settings),
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
                 }
                 IconButton(onClick = onLogoutClick) {
                     Icon(
@@ -134,4 +138,14 @@ fun CurvedHeader(
             }
         }
     }
+}
+
+@Composable
+@Preview
+fun CurvedHeaderPreview() {
+    CurvedHeader(
+        settingsAvailable = true,
+        onSettingsClick = {},
+        onLogoutClick = {}
+    )
 }

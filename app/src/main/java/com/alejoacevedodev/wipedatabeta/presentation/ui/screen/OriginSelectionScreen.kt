@@ -70,6 +70,7 @@ fun OriginSelectionScreen(
             .background(Color.White)
     ) {
         CurvedHeader(
+            settingsAvailable = true,
             onSettingsClick = onConfigureFtp,
             onLogoutClick = {
                 onNavigateHome()
