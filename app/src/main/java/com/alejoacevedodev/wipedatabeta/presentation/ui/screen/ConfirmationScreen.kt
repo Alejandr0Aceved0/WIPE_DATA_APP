@@ -1,27 +1,17 @@
 package com.alejoacevedodev.wipedatabeta.presentation.ui.screen
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,159 +21,248 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CardWipeOption
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 
 @Composable
 fun ConfirmationScreen(
     viewModel: WipeViewModel,
     onNavigateBack: () -> Unit,
-    onProcessFinished: () -> Unit,
+    onProcessFinished: () -> Unit, // Navega a la vista de reporte
     onNavigateHome: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val HeaderBlue = Color(0xFF2B4C6F)
+    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryBlue = Color(0xFF2E61F1)
 
-
+    // Escucha el fin del proceso para navegar al Reporte
     LaunchedEffect(state.wipeFinished) {
         if (state.wipeFinished) {
-            Toast.makeText(
-                context,
-                "Proceso finalizado. Se borraron ${state.deletedCount} carpetas.",
-                Toast.LENGTH_LONG
-            ).show()
+            Toast.makeText(context, "Proceso finalizado.", Toast.LENGTH_SHORT).show()
+            onProcessFinished() // Navegación a ReportScreen
             viewModel.resetWipeStatus()
-            onProcessFinished()
         }
     }
 
-    // 1. Quitamos el padding del contenedor raíz
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.White)) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // 2. Header con corrección de Status Bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(HeaderBlue) // Fondo azul primero (cubre status bar)
-                    .statusBarsPadding()    // Empuja el contenido hacia abajo
-                    .height(56.dp)
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(
-                    "NULLUM Lite",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            // 1. Header con degradado y logo (Figma)
+            CurvedHeader(
+                onSettingsClick = {},
+                onLogoutClick = onNavigateHome
+            )
 
-                IconButton(
-                    onClick = { onNavigateHome }
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = "Salir",
-                        tint = Color.White,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    )
-                }
-            }
-
-            // Contenido
-            Column(
+            Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .offset(y = (-48).dp),
+                color = Color.White,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             ) {
-                Text(
-                    "Confirmación de Borrado",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Método seleccionado:", fontWeight = FontWeight.Bold)
-                        Text(state.selectedMethod?.name ?: "Ninguno")
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        if (state.packagesToWipe.isNotEmpty()) {
-                            Text(
-                                "Paquetes a borrar (${state.packagesToWipe.size}):",
-                                fontWeight = FontWeight.Bold
+                    // Botón Regresar superior
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Button(
+                            onClick = onNavigateBack,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                            shape = RoundedCornerShape(50),
+                            modifier = Modifier.height(35.dp),
+                            enabled = !state.isWiping
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                modifier = Modifier.size(16.dp)
                             )
-                            state.packagesToWipe.forEach {
-                                Text("- ${it.substringAfterLast('/')}", fontSize = 14.sp)
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Regresar", fontSize = 12.sp)
                         }
+                    }
 
+                    Text(
+                        text = "Método seleccionado",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PrimaryDarkBlue,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
+                    )
 
-                        if (state.selectedFolders.isNotEmpty()) {
-                            Text(
-                                "Carpetas a borrar (${state.selectedFolders.size}):",
-                                fontWeight = FontWeight.Bold
-                            )
-                            state.selectedFolders.forEach {
-                                Text("- ${it.path?.substringAfterLast('/')}", fontSize = 14.sp)
+                    // 2. Card del método con la curva naranja y logo compuesto
+                    CardWipeOption(
+                        title = state.selectedMethod?.name ?: "No seleccionado",
+                        onClick = {},
+                        curveColor = Color(0x19DA6512)// Deshabilitado en esta vista
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        text = "Elementos a borrar",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryDarkBlue,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+
+                    // 3. Listado detallado (LazyColumn) con estilo Figma
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE0E7F5))
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Apps/Paquetes
+                            if (state.packagesToWipe.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        "Paquetes (${state.packagesToWipe.size})",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = PrimaryBlue,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                items(state.packagesToWipe.toList()) { pkg ->
+                                    ConfirmationItemRow(name = pkg, isPackage = true)
+                                }
+                            }
+
+                            // Carpetas
+                            if (state.selectedFolders.isNotEmpty()) {
+                                item {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        "Carpetas (${state.selectedFolders.size})",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = PrimaryBlue,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                items(state.selectedFolders.toList()) { uri ->
+                                    ConfirmationItemRow(
+                                        name = uri.path?.substringAfterLast('/') ?: "Carpeta",
+                                        isPackage = false
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // Botón Confirmar
-                Button(
-                    onClick = {
-                        viewModel.startWipeProcess()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    enabled = !state.isWiping
-                ) {
-                    Text("CONFIRMAR Y BORRAR", color = Color.White, fontWeight = FontWeight.Bold)
-                }
+                    // 4. Botón Confirmar Rojo vibrante (Figma)
+                    Button(
+                        onClick = { viewModel.startWipeProcess() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3D00)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        enabled = !state.isWiping
+                    ) {
+                        Text(
+                            "Confirmar y borrar",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                TextButton(onClick = onNavigateBack, enabled = !state.isWiping) {
-                    Text("Cancelar", color = Color.Gray)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Versión 1.0.12.1", color = Color.Gray, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }
 
-        // Indicador de Carga (Overlay)
+        // 5. Overlay de Loading mejorado visualmente
         if (state.isWiping) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.7f)),
+                    .background(Color.Black.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color.White)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Borrando ${state.currentWipingFile}...", color = Color.White)
-                    Text("Por favor espere...", color = Color.LightGray, fontSize = 12.sp)
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(color = PrimaryBlue, strokeWidth = 4.dp)
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            "Borrando datos...",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = PrimaryDarkBlue
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = state.currentWipingFile,
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ConfirmationItemRow(name: String, isPackage: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = if (isPackage) Icons.Default.Settings else Icons.Default.Delete,
+            contentDescription = null,
+            tint = Color(0xFF1A3365),
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = name.substringAfterLast('/'),
+            fontSize = 13.sp,
+            color = Color.DarkGray,
+            maxLines = 1
+        )
     }
 }

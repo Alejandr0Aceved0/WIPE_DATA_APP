@@ -175,7 +175,7 @@ class WipeViewModel @Inject constructor(
     fun resetWipeStatus() { _uiState.update { it.copy(wipeFinished = false) } }
 
     // --- EJECUCIÓN MAESTRA ---
-    fun startWipeProcess() = viewModelScope.launch(Dispatchers.IO) {
+    fun     startWipeProcess() = viewModelScope.launch(Dispatchers.IO) {
         val state = _uiState.value
         _uiState.update { it.copy(isWiping = true, wipeStartTime = System.currentTimeMillis()) }
 

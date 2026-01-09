@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.domain.model.WipeMethod
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CardWipeOption
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CompositeLogo
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 
@@ -195,21 +196,90 @@ fun WipeMethodScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.6f)),
+                    .background(Color.White), // Fondo blanco para que sea una pantalla completa de carga
                 contentAlignment = Alignment.Center
             ) {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Text(
+                        text = "Borrando Datos",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PrimaryDarkBlue
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Por favor, no cierre la aplicación ni apague el dispositivo.",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(48.dp))
+
+                    // --- ANIMACIÓN CENTRAL ---
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(260.dp)
                     ) {
-                        CircularProgressIndicator(color = PrimaryBlue)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Procesando...", fontWeight = FontWeight.Bold, color = PrimaryDarkBlue)
+                        // El círculo de carga grande que rodea el logo
+                        CircularProgressIndicator(
+                            modifier = Modifier.fillMaxSize(),
+                            color = PrimaryBlue,
+                            strokeWidth = 8.dp,
+                            trackColor = Color(0xFFE6EEFF)
+                        )
+
+                        // Tu Logo compuesto (Bote + Borrador)
+                        CompositeLogo(modifier = Modifier.size(150.dp))
                     }
+
+                    Spacer(modifier = Modifier.height(48.dp))
+
+                    // --- TARJETA DE ESTADO ACTUAL ---
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E7F5))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "PROCESANDO",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryBlue,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = state.currentWipingFile.ifEmpty { "Analizando almacenamiento..." },
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = PrimaryDarkBlue,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    Text(
+                        text = "Versión 1.0.12.1",
+                        color = Color.LightGray,
+                        fontSize = 12.sp
+                    )
                 }
             }
         }
