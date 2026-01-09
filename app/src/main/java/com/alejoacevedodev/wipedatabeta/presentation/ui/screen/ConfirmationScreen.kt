@@ -25,15 +25,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CardWipeOption
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CompositeLogo
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
+
 
 @Composable
 fun ConfirmationScreen(
     viewModel: WipeViewModel,
     onNavigateBack: () -> Unit,
-    onProcessFinished: () -> Unit, // Navega a la vista de reporte
-    onNavigateHome: () -> Unit
+    onProcessFinished: () -> Unit,
+    onNavigateHome: () -> Unit,
+    onStartWipe: () -> Unit // Nuevo parámetro para activar la navegación a la animación
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -44,7 +47,7 @@ fun ConfirmationScreen(
     LaunchedEffect(state.wipeFinished) {
         if (state.wipeFinished) {
             Toast.makeText(context, "Proceso finalizado.", Toast.LENGTH_SHORT).show()
-            onProcessFinished() // Navegación a ReportScreen
+            onProcessFinished()
             viewModel.resetWipeStatus()
         }
     }
@@ -52,9 +55,8 @@ fun ConfirmationScreen(
     Box(modifier = Modifier
         .fillMaxSize()
         .background(Color.White)) {
-        Column(modifier = Modifier.fillMaxSize()) {
 
-            // 1. Header con degradado y logo (Figma)
+        Column(modifier = Modifier.fillMaxSize()) {
             CurvedHeader(
                 onSettingsClick = {},
                 onLogoutClick = onNavigateHome
@@ -73,11 +75,9 @@ fun ConfirmationScreen(
                         .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Botón Regresar superior
+                    // Botón Regresar
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                         horizontalArrangement = Arrangement.End
                     ) {
                         Button(
@@ -87,11 +87,7 @@ fun ConfirmationScreen(
                             modifier = Modifier.height(35.dp),
                             enabled = !state.isWiping
                         ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                null,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Regresar", fontSize = 12.sp)
                         }
@@ -102,16 +98,14 @@ fun ConfirmationScreen(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = PrimaryDarkBlue,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp)
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
                     )
 
-                    // 2. Card del método con la curva naranja y logo compuesto
+                    // Tarjeta de método con curva naranja
                     CardWipeOption(
                         title = state.selectedMethod?.name ?: "No seleccionado",
                         onClick = {},
-                        curveColor = Color(0x19DA6512)// Deshabilitado en esta vista
+                        curveColor = Color(0xFFF87858)
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -121,57 +115,33 @@ fun ConfirmationScreen(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryDarkBlue,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                     )
 
-                    // 3. Listado detallado (LazyColumn) con estilo Figma
+                    // Listado Detallado
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false),
+                        modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
                         shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, Color(0xFFE0E7F5))
                     ) {
                         LazyColumn(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Apps/Paquetes
                             if (state.packagesToWipe.isNotEmpty()) {
-                                item {
-                                    Text(
-                                        "Paquetes (${state.packagesToWipe.size})",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = PrimaryBlue,
-                                        fontSize = 14.sp
-                                    )
-                                }
+                                item { Text("Paquetes (${state.packagesToWipe.size})", fontWeight = FontWeight.ExtraBold, color = PrimaryBlue, fontSize = 14.sp) }
                                 items(state.packagesToWipe.toList()) { pkg ->
                                     ConfirmationItemRow(name = pkg, isPackage = true)
                                 }
                             }
-
-                            // Carpetas
                             if (state.selectedFolders.isNotEmpty()) {
                                 item {
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        "Carpetas (${state.selectedFolders.size})",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = PrimaryBlue,
-                                        fontSize = 14.sp
-                                    )
+                                    Text("Carpetas (${state.selectedFolders.size})", fontWeight = FontWeight.ExtraBold, color = PrimaryBlue, fontSize = 14.sp)
                                 }
                                 items(state.selectedFolders.toList()) { uri ->
-                                    ConfirmationItemRow(
-                                        name = uri.path?.substringAfterLast('/') ?: "Carpeta",
-                                        isPackage = false
-                                    )
+                                    ConfirmationItemRow(name = uri.path ?: "Carpeta", isPackage = false)
                                 }
                             }
                         }
@@ -179,22 +149,18 @@ fun ConfirmationScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 4. Botón Confirmar Rojo vibrante (Figma)
+                    // BOTÓN CONFIRMAR CON ONSTARTWIPE
                     Button(
-                        onClick = { viewModel.startWipeProcess() },
+                        onClick = {
+                            onStartWipe() // Llama a la navegación de la animación
+                            viewModel.startWipeProcess() // Inicia el proceso lógico
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3D00)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(28.dp),
                         enabled = !state.isWiping
                     ) {
-                        Text(
-                            "Confirmar y borrar",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
+                        Text("Confirmar y borrar", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -204,40 +170,94 @@ fun ConfirmationScreen(
             }
         }
 
-        // 5. Overlay de Loading mejorado visualmente
+        // Overlay de carga que utiliza el componente de animación a pantalla completa
         if (state.isWiping) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.6f)),
-                contentAlignment = Alignment.Center
+            WipePageAnimation(
+                currentFile = state.currentWipingFile,
+                primaryBlue = PrimaryBlue,
+                primaryDarkBlue = PrimaryDarkBlue
+            )
+        }
+    }
+}
+@Composable
+fun WipePageAnimation(
+    currentFile: String,
+    primaryBlue: Color,
+    primaryDarkBlue: Color
+) {
+    // Esta vista cubre TODA la pantalla al estar dentro del Box de la ConfirmationScreen
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White) // Fondo blanco para cubrir todo el diseño anterior
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Borrando Datos",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = primaryDarkBlue
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Por favor, no cierre la aplicación ni apague el dispositivo.",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Contenedor de la animación central (Figma)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(280.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.fillMaxSize(),
+                color = primaryBlue,
+                strokeWidth = 8.dp,
+                trackColor = Color(0xFFE6EEFF)
+            )
+
+            // Logo compuesto (Bote + Borrador)
+            CompositeLogo(modifier = Modifier.size(160.dp))
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Card informativa del progreso actual
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFE0E7F5))
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator(color = PrimaryBlue, strokeWidth = 4.dp)
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Text(
-                            "Borrando datos...",
-                            fontWeight = FontWeight.ExtraBold,
-                            color = PrimaryDarkBlue
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = state.currentWipingFile,
-                            fontSize = 12.sp,
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center,
-                            maxLines = 2
-                        )
-                    }
-                }
+                Text(
+                    text = "PROCESANDO",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryBlue,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = currentFile.ifEmpty { "Iniciando borrado seguro..." },
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = primaryDarkBlue,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
+                )
             }
         }
     }

@@ -21,29 +21,17 @@ import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-
-    /** * sharedViewModel: Se declara a este nivel para que persista durante todo el flujo
-     * de borrado (Origins -> Methods -> Confirmation -> Report).
-     * Mantiene los datos de selección del usuario a través de las pantallas.
-     */
-    val sharedViewModel: WipeViewModel = hiltViewModel()
-
-    /** * authViewModel: Gestiona el estado global de la sesión.
-     */
+    val wipeViewModel: WipeViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
 
-    /**
-     * Helper para realizar el Logout.
-     * Limpia el estado de borrado y reinicia la pila de navegación hacia el Login.
-     */
     val navigateToLogin = {
-        sharedViewModel.resetWipeStatus()
+        wipeViewModel.resetWipeStatus()
+        authViewModel.logout() // Aseguramos que el estado de sesión se limpie
         navController.navigate("login") {
-            popUpTo("login") { inclusive = true }
+            popUpTo(0) { inclusive = true } // Limpia toda la pila de navegación
         }
     }
 
-    // Observa el estado de sesión para decidir el punto de entrada (Conditional Navigation)
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
     NavHost(
@@ -51,10 +39,6 @@ fun AppNavigation() {
         startDestination = if (isLoggedIn) "origins" else "login"
     ) {
 
-        /**
-         * 1. Pantalla de Autenticación.
-         * Punto de entrada inicial si no hay sesión activa.
-         */
         composable("login") {
             LoginScreen(
                 onLoginSuccess = { userName ->
@@ -66,11 +50,6 @@ fun AppNavigation() {
             )
         }
 
-        /**
-         * 2. Configuración FTP.
-         * Pantalla independiente para gestionar credenciales de red.
-         * Utiliza [SettingsViewModel] con ciclo de vida limitado a este destino.
-         */
         composable("ftp_settings") {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             FtpSettingsScreen(
@@ -80,14 +59,9 @@ fun AppNavigation() {
             )
         }
 
-        /**
-         * 3. Selección de Origen.
-         * Permite elegir entre borrado de Paquetes (Shizuku) o Carpetas (SAF).
-         */
         composable("origins") {
-            // Se inyectan los ViewModels necesarios para esta sección
             OriginSelectionScreen(
-                wipeViewModel = sharedViewModel,
+                wipeViewModel = wipeViewModel,
                 authViewModel = authViewModel,
                 onNavigateToMethods = { navController.navigate("methods") },
                 onNavigateHome = { navigateToLogin() },
@@ -95,41 +69,55 @@ fun AppNavigation() {
             )
         }
 
-        /**
-         * 4. Selección de Método.
-         * Define el estándar de borrado (NIST, DoD, BSI).
-         */
         composable("methods") {
             WipeMethodScreen(
-                viewModel = sharedViewModel,
+                viewModel = wipeViewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onMethodSelected = { navController.navigate("confirmation") },
                 onNavigateHome = { navigateToLogin() }
             )
         }
 
-        /**
-         * 5. Confirmación y Proceso Activo.
-         * Muestra el resumen antes de ejecutar y el progreso en tiempo real del borrado.
-         */
         composable("confirmation") {
             ConfirmationScreen(
-                viewModel = sharedViewModel,
+                viewModel = wipeViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onProcessFinished = { navController.navigate("report") },
+                onStartWipe = {
+                    // Al iniciar el borrado, navegamos a la pantalla de animación
+                    navController.navigate("wipe_animation")
+                },
+                onProcessFinished = {
+                    // Si el proceso terminara aquí (fallback), ir al reporte
+                    navController.navigate("report") {
+                        popUpTo("origins") { inclusive = false }
+                    }
+                },
                 onNavigateHome = { navigateToLogin() }
             )
         }
 
         /**
-         * 6. Reporte Final y Certificado.
-         * Pantalla de cierre que muestra resultados y permite generar el PDF.
+         * Pantalla de Animación de Borrado Activo.
+         * Se muestra mientras state.isWiping es verdadero.
          */
+        composable("wipe_animation") {
+            WipeAnimationScreen(
+                viewModel = wipeViewModel,
+                onProcessFinished = {
+                    // Al finalizar la animación, saltamos al reporte
+                    navController.navigate("report") {
+                        // Evitamos que el usuario regrese a la animación con el botón atrás
+                        popUpTo("origins") { inclusive = false }
+                    }
+                }
+            )
+        }
+
         composable("report") {
             ReportScreen(
-                viewModel = sharedViewModel,
+                viewModel = wipeViewModel,
                 onNavigateHome = {
-                    sharedViewModel.resetWipeStatus()
+                    wipeViewModel.resetWipeStatus()
                     navController.navigate("origins") {
                         popUpTo("origins") { inclusive = true }
                     }

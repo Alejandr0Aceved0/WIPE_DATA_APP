@@ -138,3 +138,102 @@ fun WipeAnimationScreen(
         )
     }
 }
+
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun WipeAnimationScreenPreview() {
+    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryBlue = Color(0xFF2E61F1)
+
+    // Simulamos la estructura de la pantalla sin depender del ViewModel real
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Borrando Datos",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = PrimaryDarkBlue
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Por favor, no cierre la aplicación ni apague el dispositivo.",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Contenedor de la animación central (Diseño Figma)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(280.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.fillMaxSize(),
+                color = PrimaryBlue,
+                strokeWidth = 8.dp,
+                trackColor = Color(0xFFE6EEFF)
+            )
+
+            // Espacio para el logo (puedes llamar a CompositeLogo() aquí si está en el mismo paquete)
+            Box(
+                modifier = Modifier
+                    .size(160.dp)
+                    .background(Color(0xFFF5F5F5), androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("LOGO", color = Color.LightGray)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Card informativa (Diseño Figma)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E7F5))
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "PROCESANDO",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBlue,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "com.android.system.cache/data_001.bin",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = PrimaryDarkBlue,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Versión 1.0.12.1",
+            color = Color.LightGray,
+            fontSize = 12.sp
+        )
+    }
+}
