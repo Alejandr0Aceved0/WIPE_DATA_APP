@@ -1,10 +1,12 @@
 package com.alejoacevedodev.wipedatabeta.presentation.ui.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,12 +23,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CompositeLogo
+import com.alejoacevedodev.wipedatabeta.R
+import com.alejoacevedodev.wipedatabeta.domain.model.WipeUiState
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 
 /**
@@ -57,7 +64,14 @@ fun WipeAnimationScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF2E61F1),
+                        Color(0xFF1A3365)
+                    )
+                )
+            )
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -93,8 +107,12 @@ fun WipeAnimationScreen(
                 trackColor = Color(0xFFE6EEFF)
             )
 
-            // Logo compuesto en el centro (Bote + Borrador)
-            CompositeLogo(modifier = Modifier.size(160.dp))
+            Image(
+                painter = painterResource(id = R.drawable.app_logo),
+                contentDescription = null,
+                modifier = Modifier.size(110.dp),
+                contentScale = ContentScale.Fit
+            )
         }
 
         Spacer(modifier = Modifier.height(48.dp))
@@ -140,100 +158,130 @@ fun WipeAnimationScreen(
 }
 
 
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun WipeAnimationScreenPreview() {
+fun WipeAnimationContent(state: WipeUiState) {
     val PrimaryDarkBlue = Color(0xFF1A3365)
     val PrimaryBlue = Color(0xFF2E61F1)
 
-    // Simulamos la estructura de la pantalla sin depender del ViewModel real
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF2E61F1),
+                        Color(0xFF1A3365)
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Borrando Datos",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = PrimaryDarkBlue
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Por favor, no cierre la aplicación ni apague el dispositivo.",
-            fontSize = 14.sp,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Contenedor de la animación central (Diseño Figma)
+        // Fondo azul superior (Header) igual que en Figma
         Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(280.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.35f)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.fillMaxSize(),
-                color = PrimaryBlue,
-                strokeWidth = 8.dp,
-                trackColor = Color(0xFFE6EEFF)
+            Spacer(modifier = Modifier.height(60.dp))
+
+            Text(
+                text = "Borrando Datos",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
             )
 
-            // Espacio para el logo (puedes llamar a CompositeLogo() aquí si está en el mismo paquete)
-            Box(
-                modifier = Modifier
-                    .size(160.dp)
-                    .background(Color(0xFFF5F5F5), androidx.compose.foundation.shape.CircleShape),
-                contentAlignment = Alignment.Center
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Por favor, no cierre la aplicación ni apague el dispositivo.",
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Tarjeta central con animación
+            Card(
+                modifier = Modifier.size(300.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Text("LOGO", color = Color.LightGray)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(220.dp),
+                        color = PrimaryBlue,
+                        strokeWidth = 8.dp,
+                        trackColor = Color(0xFFE6EEFF)
+                    )
+
+                    Image(
+                        painter = painterResource(id = R.drawable.app_logo),
+                        contentDescription = null,
+                        modifier = Modifier.size(110.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(48.dp))
 
-        // Card informativa (Diseño Figma)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
-            shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E7F5))
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Info del archivo actual
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E7F5))
             ) {
-                Text(
-                    text = "PROCESANDO",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryBlue,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "com.android.system.cache/data_001.bin",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = PrimaryDarkBlue,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
-                )
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("PROCESANDO", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = state.currentWipingFile.ifEmpty { "Analizando almacenamiento..." },
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = PrimaryDarkBlue,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+            Text("Versión 1.0.12.1", color = Color.LightGray, fontSize = 12.sp, modifier = Modifier.padding(bottom = 24.dp))
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Versión 1.0.12.1",
-            color = Color.LightGray,
-            fontSize = 12.sp
-        )
     }
+}
+
+
+
+@Preview(showBackground = true, showSystemUi = true, name = "Wipe Animation - Procesando")
+@Composable
+fun WipeAnimationScreenPreview() {
+    // Creamos un estado simulado para el preview
+    val mockState = WipeUiState(
+        isWiping = true,
+        currentWipingFile = "com.android.providers.telephony/databases/mmssms.db",
+        wipeFinished = false
+    )
+
+    WipeAnimationContent(state = mockState)
 }

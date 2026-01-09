@@ -3,7 +3,18 @@ package com.alejoacevedodev.wipedatabeta.presentation.ui.screen
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,7 +22,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,11 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CardWipeOption
-import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CompositeLogo
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 
@@ -65,6 +80,7 @@ fun ConfirmationScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(top = 50.dp)
                     .offset(y = (-48).dp),
                 color = Color.White,
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
@@ -167,97 +183,6 @@ fun ConfirmationScreen(
                     Text("Versión 1.0.12.1", color = Color.Gray, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(12.dp))
                 }
-            }
-        }
-
-        // Overlay de carga que utiliza el componente de animación a pantalla completa
-        if (state.isWiping) {
-            WipePageAnimation(
-                currentFile = state.currentWipingFile,
-                primaryBlue = PrimaryBlue,
-                primaryDarkBlue = PrimaryDarkBlue
-            )
-        }
-    }
-}
-@Composable
-fun WipePageAnimation(
-    currentFile: String,
-    primaryBlue: Color,
-    primaryDarkBlue: Color
-) {
-    // Esta vista cubre TODA la pantalla al estar dentro del Box de la ConfirmationScreen
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White) // Fondo blanco para cubrir todo el diseño anterior
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Borrando Datos",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = primaryDarkBlue
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Por favor, no cierre la aplicación ni apague el dispositivo.",
-            fontSize = 14.sp,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Contenedor de la animación central (Figma)
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(280.dp)
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.fillMaxSize(),
-                color = primaryBlue,
-                strokeWidth = 8.dp,
-                trackColor = Color(0xFFE6EEFF)
-            )
-
-            // Logo compuesto (Bote + Borrador)
-            CompositeLogo(modifier = Modifier.size(160.dp))
-        }
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Card informativa del progreso actual
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, Color(0xFFE0E7F5))
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "PROCESANDO",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryBlue,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = currentFile.ifEmpty { "Iniciando borrado seguro..." },
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = primaryDarkBlue,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
-                )
             }
         }
     }

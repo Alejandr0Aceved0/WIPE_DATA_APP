@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,13 +18,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -102,18 +102,16 @@ fun WipeMethodScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
                         ) {
-                            TextButton(
+                            Button(
                                 onClick = onNavigateBack,
-                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                                shape = RoundedCornerShape(50),
+                                modifier = Modifier.height(35.dp),
+                                enabled = !state.isWiping
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = null,
-                                    tint = PrimaryBlue,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Regresar", color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Regresar", fontSize = 12.sp)
                             }
                         }
 
