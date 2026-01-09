@@ -80,7 +80,7 @@ fun WipeAnimationScreen(
             text = "Borrando Datos",
             fontSize = 28.sp,
             fontWeight = FontWeight.ExtraBold,
-            color = PrimaryDarkBlue
+            color = Color.White
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -88,7 +88,7 @@ fun WipeAnimationScreen(
         Text(
             text = "Por favor, no cierre la aplicación ni apague el dispositivo.",
             fontSize = 14.sp,
-            color = Color.Gray,
+            color = Color.White,
             textAlign = TextAlign.Center
         )
 
@@ -146,14 +146,6 @@ fun WipeAnimationScreen(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Versión 1.0.12.1",
-            color = Color.LightGray,
-            fontSize = 12.sp
-        )
     }
 }
 
