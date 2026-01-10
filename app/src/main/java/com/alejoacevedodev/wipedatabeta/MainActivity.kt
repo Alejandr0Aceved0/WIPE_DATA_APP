@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.alejoacevedodev.wipedatabeta.presentation.ui.screen.MainScreen
 import com.alejoacevedodev.wipedatabeta.ui.theme.WIPE_DATA_BETATheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,6 +26,9 @@ class MainActivity : ComponentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()

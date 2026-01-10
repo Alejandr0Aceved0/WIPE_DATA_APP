@@ -55,7 +55,7 @@ fun ReportScreen(
     val state by viewModel.uiState.collectAsState()
     val _uiState = MutableStateFlow(WipeUiState())
 
-    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryDarkBlue = Color(0xFF1E3A8A)
     val PrimaryBlue = Color(0xFF2E61F1)
     val SuccessGreen = Color(0xFF4CAF50)
 

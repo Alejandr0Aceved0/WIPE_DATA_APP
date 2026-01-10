@@ -56,7 +56,7 @@ fun ShizukuWipeSection(
     val isServiceReady = isShizukuPermitted && Shizuku.pingBinder()
     val contentAlpha = if (isServiceReady) 1f else 0.5f
     var packageNameInput by remember { mutableStateOf("") }
-    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryDarkBlue = Color(0xFF1E3A8A)
 
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -87,7 +87,7 @@ fun ShizukuWipeSection(
                     .alpha(contentAlpha)
             ) {
                 Text(
-                    text = "Opción 1 - borrado seguro desde paquetes del sistema",
+                    text = "Opción 1 - Borrado seguro desde paquetes del sistema",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryDarkBlue,

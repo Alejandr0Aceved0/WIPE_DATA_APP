@@ -42,6 +42,7 @@ import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CardWipeOpti
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CompositeLogo
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
+import com.alejoacevedodev.wipedatabeta.utils.getAppVersion
 
 @Composable
 fun WipeMethodScreen(
@@ -53,9 +54,10 @@ fun WipeMethodScreen(
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryDarkBlue = Color(0xFF1E3A8A)
     val PrimaryBlue = Color(0xFF2E61F1)
-    val CardCurveColor = Color(0xFFF3F7FF) // Un tono azul sutil para la curva de métodos
+    val CardCurveColor = Color(0xFFF3F7FF)
+    val appVersion = getAppVersion(context)
 
     fun validateAndProceed(method: WipeMethod) {
         if (state.isPackageSelected && state.packagesToWipe.isEmpty()) {
@@ -83,7 +85,7 @@ fun WipeMethodScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 55.dp)
+                    .padding(top = 50.dp)
                     .offset(y = (-48).dp),
                 color = Color.White,
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
@@ -95,11 +97,9 @@ fun WipeMethodScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     item {
-                        Spacer(modifier = Modifier.height(24.dp))
-
                         // Botón regresar estilizado
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                             horizontalArrangement = Arrangement.End
                         ) {
                             Button(
@@ -109,9 +109,14 @@ fun WipeMethodScreen(
                                 modifier = Modifier.height(35.dp),
                                 enabled = !state.isWiping
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(Modifier.width(4.dp))
-                                Text("Regresar", fontSize = 12.sp)
+                                Text("Regresar", fontSize = 12.sp, color = Color.White)
                             }
                         }
 
@@ -130,7 +135,9 @@ fun WipeMethodScreen(
                             text = "Elija el estándar de seguridad para el proceso.",
                             fontSize = 14.sp,
                             color = Color.Gray,
-                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
                             textAlign = TextAlign.Start
                         )
 
@@ -178,10 +185,16 @@ fun WipeMethodScreen(
                         Spacer(modifier = Modifier.height(20.dp))
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
-                            "Versión 1.0.12.1",
-                            color = Color.Gray,
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center
+                            text = "Versión",
+                            color = Color.Black,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "$appVersion",
+                            color = Color.Black,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(20.dp))
                     }
@@ -274,10 +287,18 @@ fun WipeMethodScreen(
                     Spacer(modifier = Modifier.height(40.dp))
 
                     Text(
-                        text = "Versión 1.0.12.1",
-                        color = Color.LightGray,
-                        fontSize = 12.sp
+                        text = "Versión",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
                     )
+                    Text(
+                        text = "$appVersion",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
@@ -291,16 +312,20 @@ fun WipeMethodScreenPreview() {
     // Simulamos un ViewModel o un estado básico para el preview
     val PrimaryBlue = Color(0xFF2E61F1)
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.White)) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Cabecera simulada
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp)
-                    .background(androidx.compose.ui.graphics.Brush.verticalGradient(
-                        colors = listOf(Color(0xFF1E4198), Color(0xFF3B67D6))
-                    ))
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(Color(0xFF1E4198), Color(0xFF3B67D6))
+                        )
+                    )
             )
 
             Surface(
@@ -316,7 +341,7 @@ fun WipeMethodScreenPreview() {
                         text = "Selección del método",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1A3365)
+                        color = Color(0xFF1E3A8A)
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 

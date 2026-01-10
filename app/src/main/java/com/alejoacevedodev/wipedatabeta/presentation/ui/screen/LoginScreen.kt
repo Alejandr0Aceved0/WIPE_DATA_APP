@@ -1,8 +1,9 @@
 package com.alejoacevedodev.wipedatabeta.presentation.ui.screen
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -47,11 +46,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.R
+import com.alejoacevedodev.wipedatabeta.utils.getAppVersion
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import android.util.Log
-import android.widget.Toast
 
 @Composable
 fun LoginScreen(
@@ -59,13 +57,13 @@ fun LoginScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var rememberMe by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
     val BlueGradientStart = Color(0xFF1E4198)
     val BlueGradientEnd = Color(0xFF3B67D6)
     val InputBorderColor = Color(0xFF3B67D6)
     val ButtonColor = Color(0xFF2E61F1)
     val context = LocalContext.current
+    val appVersion = remember { getAppVersion(context) }
 
     Box(
         modifier = Modifier
@@ -134,7 +132,7 @@ fun LoginScreen(
                         text = "Ingreso",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1A3365),
+                        color = Color(0xFF1E3A8A),
                         modifier = Modifier.align(Alignment.Start)
                     )
 
@@ -192,12 +190,12 @@ fun LoginScreen(
                         },
                         trailingIcon = {
                             val image =
-                                if (passwordVisible) R.drawable.ic_visibility else R.drawable.ic_visibility
+                                if (passwordVisible) R.drawable.ic_figma_eye else R.drawable.ic_figma_eye
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
                                     painter = painterResource(id = image),
                                     contentDescription = null,
-                                    tint = if (passwordVisible) InputBorderColor else Color.Unspecified
+                                    tint = if (passwordVisible) Color.Unspecified else BlueGradientStart
                                 )
                             }
                         },
@@ -210,35 +208,6 @@ fun LoginScreen(
                         ),
                         singleLine = true
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Recordar datos y Olvidé mi contraseña
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = rememberMe,
-                                onCheckedChange = { rememberMe = it },
-                                colors = CheckboxDefaults.colors(checkedColor = InputBorderColor)
-                            )
-                            Text(
-                                "Recordar datos",
-                                fontSize = 15.sp,
-                                color = Color.Black,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        Text(
-                            text = "Olvidé mi contraseña",
-                            fontSize = 15.sp,
-                            color = Color.Black,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
@@ -284,35 +253,12 @@ fun LoginScreen(
                         Text("Ingresar", fontSize = 24.sp, fontWeight = FontWeight.Normal)
                     }
 
+                    Spacer(modifier = Modifier.weight(1.5f))
+
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Registro
-                    Row {
-                        Text(
-                            "No tienes una cuenta? ",
-                            color = Color.Black,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Normal
-                        )
-                        Text(
-                            text = "Registrate",
-                            color = Color.Black,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { /* Navegación registro */ }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Versión
-                    Text(
-                        text = "Versión\n1.0.12.1",
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        color = Color.Gray,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+                    Text(text = "Versión", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "$appVersion", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }

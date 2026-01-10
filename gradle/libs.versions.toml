@@ -4,6 +4,7 @@
 agp = "8.4.1"                # Última versión estable de Android Gradle Plugin
 androidxDocumentfile = "1.0.1"
 api = "12.1.0"
+coreSplashscreen = "1.0.1"
 datastorePreferences = "1.1.1"
 kotlin = "2.0.21"             # Última versión estable de Kotlin
 ksp = "2.0.21-1.0.27"       # KSP debe coincidir con la versión de Kotlin
@@ -38,6 +39,7 @@ commonsNet = "3.10.0"
 [libraries]
 # --- AndroidX Core, Lifecycle & Material ---
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }

@@ -94,6 +94,8 @@ dependencies {
     implementation(libs.api)
     implementation(libs.provider)
 
+    implementation(libs.androidx.core.splashscreen)
+
     // DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
 

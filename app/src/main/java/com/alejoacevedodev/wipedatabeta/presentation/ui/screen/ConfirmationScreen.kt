@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CardWipeOption
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
+import com.alejoacevedodev.wipedatabeta.utils.getAppVersion
 
 
 @Composable
@@ -55,8 +56,9 @@ fun ConfirmationScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryDarkBlue = Color(0xFF1E3A8A)
     val PrimaryBlue = Color(0xFF2E61F1)
+    val appVersion = getAppVersion(context)
 
     // Escucha el fin del proceso para navegar al Reporte
     LaunchedEffect(state.wipeFinished) {
@@ -103,16 +105,16 @@ fun ConfirmationScreen(
                             modifier = Modifier.height(35.dp),
                             enabled = !state.isWiping
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Regresar", fontSize = 12.sp)
+                            Text("Regresar", fontSize = 12.sp, color = Color.White)
                         }
                     }
 
                     Text(
                         text = "Método seleccionado",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 35.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = PrimaryDarkBlue,
                         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
                     )
@@ -180,7 +182,8 @@ fun ConfirmationScreen(
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Versión 1.0.12.1", color = Color.Gray, fontSize = 12.sp)
+                    Text(text = "Versión", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "$appVersion", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }
@@ -199,7 +202,7 @@ fun ConfirmationItemRow(name: String, isPackage: Boolean) {
         Icon(
             imageVector = if (isPackage) Icons.Default.Settings else Icons.Default.Delete,
             contentDescription = null,
-            tint = Color(0xFF1A3365),
+            tint = Color(0xFF1E3A8A),
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))

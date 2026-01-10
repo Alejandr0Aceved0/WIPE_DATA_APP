@@ -13,5 +13,10 @@ data class SettingsUiState(
     val ftpHost: String = "",
     val ftpUser: String = "",
     val ftpPass: String = "",
-    val ftpPort: String = "21"
+    val ftpPort: String = "21",
+    // Estados de validación
+    val hostError: Boolean = false,
+    val userError: Boolean = false,
+    val passError: Boolean = false,
+    val portError: Boolean = false
 )

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -39,56 +40,52 @@ import com.alejoacevedodev.wipedatabeta.R
 
 @Composable
 fun CurvedHeader(
-    settingsAvailable : Boolean? = false,
+    settingsAvailable: Boolean? = false,
     onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     val HeaderGradient = Brush.horizontalGradient(
-        colors = listOf(
-            Color(0xFF2E61F1),
-            Color(0xFF1A3365)
-        )
+        colors = listOf(Color(0xFF2E61F1), Color(0xFF1E3A8A))
     )
 
-    val headerHeight = 150.dp   // 🔥 altura exacta tipo Figma
+    val headerHeight = 150.dp
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(headerHeight)
     ) {
-
-        /* ===== Fondo azul con curva EXACTA ===== */
+        /* 1. Fondo con curva (Canvas) */
         Canvas(modifier = Modifier.fillMaxSize()) {
             val curveRadius = size.height * 0.42f
-
             val path = Path().apply {
                 moveTo(0f, 0f)
                 lineTo(size.width, 0f)
                 lineTo(size.width, size.height)
                 lineTo(curveRadius, size.height)
-
-                // curva limpia solo esquina inferior izquierda
-                quadraticBezierTo(
-                    x1 = 0f,
-                    y1 = size.height,
-                    x2 = 0f,
-                    y2 = size.height - curveRadius
-                )
-
+                quadraticBezierTo(0f, size.height, 0f, size.height - curveRadius)
                 close()
             }
-
             drawPath(path, HeaderGradient)
         }
 
+        /* 2. LOGO INDEPENDIENTE (Box con offset) */
+        // Al estar en un Box, este Image "flota" sobre el resto
+        Image(
+            painter = painterResource(id = R.drawable.app_logo),
+            contentDescription = null,
+            modifier = Modifier
+                .offset(x = -25.dp, y = 28.dp) // Lo mueves donde quieras
+                .size(150.dp)                             // Cambias tamaño sin afectar al texto
+        )
+
+        /* 3. CONTENIDO ESTRUCTURADO (Iconos y Texto) */
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-
-            /* ===== Iconos superiores ===== */
+            // Iconos superiores
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -97,43 +94,42 @@ fun CurvedHeader(
             ) {
                 if (settingsAvailable == true) {
                     IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_settings),
-                            contentDescription = null,
-                            tint = Color.White
-                        )
+                        Icon(painterResource(R.drawable.ic_settings), null, tint = Color.White)
                     }
                 }
                 IconButton(onClick = onLogoutClick) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_exit),
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                    Icon(painterResource(R.drawable.ic_exit), null, tint = Color.White)
                 }
             }
 
-            /* ===== Logo + título ===== */
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 20.dp, top = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(start = 88.dp),
+                horizontalArrangement = Arrangement.Start
             ) {
 
-                Image(
-                    painter = painterResource(id = R.drawable.app_logo),
-                    contentDescription = null,
-                    modifier = Modifier.size(92.dp) // 🔥 tamaño exacto
+                // Título (Ahora solo, ya no depende del logo)
+                Text(
+                    text = "Nullum",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(
+                        start = 20.dp,
+                        top = 10.dp
+                    ) // Ajusta el padding para que no choque con el logo
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
-
                 Text(
-                    text = "Nullum Lite",
+                    text = " Lite",
                     color = Color.White,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(
+                        start = 0.dp,
+                        top = 10.dp
+                    ) // Ajusta el padding para que no choque con el logo
                 )
             }
         }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -52,6 +54,7 @@ import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.ShizukuInstallBanner
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.ShizukuWipeSection
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
+import com.alejoacevedodev.wipedatabeta.utils.getAppVersion
 import java.io.File
 
 @Composable
@@ -63,10 +66,11 @@ fun OriginSelectionScreen(
     onConfigureFtp: () -> Unit
 ) {
     val state by wipeViewModel.uiState.collectAsState()
-    val primaryDarkBlue = Color(0xFF1A3365)
+    val primaryDarkBlue = Color(0xFF1E3A8A)
     val primaryBlue = Color(0xFF2E61F1)
     val context = LocalContext.current
     val hasItemsToProcess = state.selectedFolders.isNotEmpty() || state.packagesToWipe.isNotEmpty()
+    val appVersion = remember { getAppVersion(context) }
 
     // Estado para saber si Shizuku está instalado
     var isShizukuInstalled by remember {
@@ -127,7 +131,7 @@ fun OriginSelectionScreen(
 
                 item {
                     Text(
-                        text = "Opción 2 – Borrado Seguro desde Archivos",
+                        text = "Opción 2 – Borrado seguro desde archivos",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = primaryDarkBlue,
@@ -144,7 +148,7 @@ fun OriginSelectionScreen(
                     ) { folderPickerLauncher.launch(null) }
                     Spacer(modifier = Modifier.height(12.dp))
                     CardOption(
-                        title = "Memoria Externa",
+                        title = "Memoria externa",
                         curveColor = Color(0xFFE6EEFF),
                         image = painterResource(id = R.drawable.img_folder)
                     ) { folderPickerLauncher.launch(null) }
@@ -201,7 +205,8 @@ fun OriginSelectionScreen(
 
                 item {
                     Spacer(modifier = Modifier.height(40.dp))
-                    Text("Versión 1.0.12.1", color = Color.Gray, fontSize = 12.sp)
+                    Text(text = "Versión", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "$appVersion", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(20.dp))
                 }
             }

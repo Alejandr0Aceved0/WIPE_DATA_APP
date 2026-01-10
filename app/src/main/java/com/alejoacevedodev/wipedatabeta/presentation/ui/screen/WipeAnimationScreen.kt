@@ -51,7 +51,7 @@ fun WipeAnimationScreen(
     onProcessFinished: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
-    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryDarkBlue = Color(0xFF1E3A8A)
     val PrimaryBlue = Color(0xFF2E61F1)
 
     // Navegación automática al terminar
@@ -68,7 +68,7 @@ fun WipeAnimationScreen(
                 Brush.verticalGradient(
                     colors = listOf(
                         Color(0xFF2E61F1),
-                        Color(0xFF1A3365)
+                        Color(0xFF1E3A8A)
                     )
                 )
             )
@@ -152,7 +152,7 @@ fun WipeAnimationScreen(
 
 @Composable
 fun WipeAnimationContent(state: WipeUiState) {
-    val PrimaryDarkBlue = Color(0xFF1A3365)
+    val PrimaryDarkBlue = Color(0xFF1E3A8A)
     val PrimaryBlue = Color(0xFF2E61F1)
 
     Box(
@@ -162,7 +162,7 @@ fun WipeAnimationContent(state: WipeUiState) {
                 Brush.verticalGradient(
                     colors = listOf(
                         Color(0xFF2E61F1),
-                        Color(0xFF1A3365)
+                        Color(0xFF1E3A8A)
                     )
                 )
             ),

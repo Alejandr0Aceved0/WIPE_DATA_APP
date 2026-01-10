@@ -38,7 +38,7 @@ fun CardWipeOption(
     curveColor: Color,
     onClick: () -> Unit
 ) {
-    val textColor = Color(0xFF1A3365)
+    val textColor = Color(0xFF1E3A8A)
     val curveColor = Color(0xFFF87858)
     val cardBackground = Color.White
 

@@ -1,30 +1,32 @@
 package com.alejoacevedodev.wipedatabeta.presentation.ui.screen
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,14 +37,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alejoacevedodev.wipedatabeta.R
 import com.alejoacevedodev.wipedatabeta.presentation.settings.SettingsViewModel
+import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
+import com.alejoacevedodev.wipedatabeta.ui.theme.FormFontFamily
+import com.alejoacevedodev.wipedatabeta.utils.getAppVersion
 
 @Composable
 fun FtpSettingsScreen(
@@ -53,160 +59,224 @@ fun FtpSettingsScreen(
     val state by viewModel.uiState.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
 
-    val HeaderBlue = Color(0xFF2B4C6F)
-    val DarkBlueButton = Color(0xFF2B4C6F)
+    val PrimaryDarkBlue = Color(0xFF1E3A8A)
+    val PrimaryBlue = Color(0xFF2E61F1)
+    val ErrorRed = Color(0xFFD32F2F)
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val appVersion = remember { getAppVersion(context) }
 
     Box(modifier = Modifier
         .fillMaxSize()
         .background(Color.White)) {
         Column(modifier = Modifier.fillMaxSize()) {
+            CurvedHeader(onSettingsClick = { }, onLogoutClick = onNavigateHome)
 
-            // 1. Encabezado con corrección de Status Bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(HeaderBlue) // 1. Fondo azul (cubre status bar)
-                    .statusBarsPadding()    // 2. Padding para bajar el contenido
-                    .height(56.dp)          // 3. Altura del contenido
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(
-                    "NULLUM Lite",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                IconButton(
-                    onClick = { onNavigateHome }
-                ) {
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = "Salir",
-                        tint = Color.White,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    )
-                }
-            }
-
-            // 2. Contenido
-            Column(
+            Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .offset(y = (-48).dp)
+                    .padding(top = 50.dp),
+                color = Color.White,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             ) {
-
-                // Botón Regresar
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                    Button(
-                        onClick = onNavigateBack,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
-                        contentPadding = PaddingValues(horizontal = 12.dp),
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier.height(32.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Botón Regresar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        Text("Regresar", color = Color.White, fontSize = 12.sp)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text(
-                    text = "Configuración del envío\nautomático FTP",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(30.dp))
-
-                // Campo: URL o Host
-                Text(text = "URL o Host", modifier = Modifier.fillMaxWidth(), color = Color.Black, fontSize = 14.sp)
-                OutlinedTextField(
-                    value = state.ftpHost,
-                    onValueChange = { viewModel.updateFtpHost(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Enlace de conexión al FTP", color = Color.LightGray) },
-                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Gray,
-                        unfocusedBorderColor = Color.LightGray
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Campo: Usuario
-                Text(text = "Usuario", modifier = Modifier.fillMaxWidth(), color = Color.Black, fontSize = 14.sp)
-                OutlinedTextField(
-                    value = state.ftpUser,
-                    onValueChange = { viewModel.updateFtpUser(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Usuario", color = Color.LightGray) },
-                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Gray,
-                        unfocusedBorderColor = Color.LightGray
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Campo: Contraseña
-                Text(text = "Contraseña", modifier = Modifier.fillMaxWidth(), color = Color.Black, fontSize = 14.sp)
-                OutlinedTextField(
-                    value = state.ftpPass,
-                    onValueChange = { viewModel.updateFtpPass(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Contraseña", color = Color.LightGray) },
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Gray,
-                        unfocusedBorderColor = Color.LightGray
-                    ),
-                    trailingIcon = {
-                        val image = if (passwordVisible) Icons.Filled.Check else Icons.Filled.CheckCircle
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
+                        Button(
+                            onClick = onNavigateBack,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                            shape = RoundedCornerShape(50),
+                            modifier = Modifier.height(35.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text("Regresar", fontSize = 12.sp, color = Color.White)
                         }
                     }
-                )
 
-                Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                // Botón Guardar
-                Button(
-                    onClick = {
-                        viewModel.saveFtpConfig()
-                        onNavigateBack()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = DarkBlueButton),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Guardar", fontSize = 18.sp, color = Color.White)
+                    Text(
+                        text = "Configuración del envío automático FTP",
+                        fontSize = 35.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PrimaryDarkBlue,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Campo: URL o Host
+                    FtpInputField(
+                        label = "URL o Host",
+                        value = state.ftpHost,
+                        placeholder = "Enlace de conexión al FTP",
+                        iconRes = R.drawable.ic_link,
+                        isError = state.hostError,
+                        onValueChange = { viewModel.updateFtpHost(it) }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Fila para Puerto y Usuario
+                    Row(modifier = Modifier.fillMaxWidth()) {
+
+                        Box(modifier = Modifier.weight(0.7f)) {
+                            FtpInputField(
+                                label = "Usuario",
+                                value = state.ftpUser,
+                                placeholder = "Nombre de usuario",
+                                iconRes = R.drawable.ic_mail,
+                                isError = state.userError,
+                                onValueChange = { viewModel.updateFtpUser(it) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Campo: Contraseña
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            "Contraseña",
+                            color = PrimaryDarkBlue,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = state.ftpPass,
+                            onValueChange = { viewModel.updateFtpPass(it) },
+                            modifier = Modifier.fillMaxWidth(),
+                            isError = state.passError,
+                            placeholder = { Text("Contraseña", color = Color.Gray) },
+                            leadingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.ic_lock),
+                                    null,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_figma_eye),
+                                        contentDescription = null,
+                                        tint = if (passwordVisible) Color.Unspecified else PrimaryBlue
+                                    )
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = PrimaryBlue.copy(alpha = 0.5f),
+                                errorBorderColor = ErrorRed
+                            )
+                        )
+                        if (state.passError) Text("Requerido", color = ErrorRed, fontSize = 12.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(48.dp))
+
+                    Button(
+                        onClick = {
+                            // Solo navegamos si la validación y guardado fueron exitosos
+                            if (viewModel.saveFtpConfig()) {
+                                onNavigateBack()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(28.dp)
+                    ) {
+                        Text(
+                            "Guardar",
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(text = "Versión", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "$appVersion", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Text("Versión\n1.0.12.1", textAlign = TextAlign.Center, color = Color.Gray, fontSize = 12.sp)
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+}
+
+@Composable
+fun FtpInputField(
+    label: String,
+    value: String,
+    placeholder: String,
+    @DrawableRes iconRes: Int,
+    isError: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    onValueChange: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            color = Color(0xFF1E3A8A),
+            fontFamily = FormFontFamily,
+            fontWeight = FontWeight.Normal,
+            fontSize = 16.sp
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            isError = isError,
+            placeholder = {
+                Text(
+                    placeholder,
+                    color = Color.Gray,
+                    fontFamily = FormFontFamily,
+                    fontWeight = FontWeight.Light,
+                    fontSize = 16.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF2E61F1),
+                unfocusedBorderColor = Color(0xFF2E61F1).copy(alpha = 0.5f),
+                errorBorderColor = Color(0xFFD32F2F)
+            )
+        )
     }
 }

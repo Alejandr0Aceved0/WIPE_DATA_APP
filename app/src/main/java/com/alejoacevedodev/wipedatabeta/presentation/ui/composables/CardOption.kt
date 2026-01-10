@@ -41,7 +41,7 @@ fun CardOption(
     image: Painter,
     onClick: () -> Unit
 ) {
-    val textColor = Color(0xFF1A3365)
+    val textColor = Color(0xFF1E3A8A)
     val curveColor = curveColor
     val cardBackground = Color.White
 
