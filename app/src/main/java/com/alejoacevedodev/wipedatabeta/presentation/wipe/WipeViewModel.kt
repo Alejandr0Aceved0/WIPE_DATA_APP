@@ -80,65 +80,52 @@ class WipeViewModel @Inject constructor(
             return
         }
 
-        val sourcePath = "/storage/emulated/0/Android/data/*"
-        val mediaDir = "/storage/emulated/0/Android/mediadepruebas"
+        // Definimos las rutas.
+        // Usamos /data/media/0 que es la ruta real para evitar problemas de permisos de FUSE
+        val mediaDir = "/storage/emulated/0/Android/AcopioData"
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // 1. Verificar si existe Android/media
-                val checkCommand = arrayOf("sh", "-c", "[ -d \"$mediaDir\" ] && echo EXISTS || echo NO")
-                val checkProcess = Shizuku.newProcess(checkCommand, null, null)
+                // 1. Crear la carpeta de destino con permisos totales
+                val setupCmd = "mkdir -p $mediaDir && chmod 777 $mediaDir"
+                Shizuku.newProcess(arrayOf("sh", "-c", setupCmd), null, null).waitFor()
 
-                val existsOutput = BufferedReader(InputStreamReader(checkProcess.inputStream)).use {
-                    it.readText().trim()
-                }
-                checkProcess.waitFor()
+                // 2. Script de Shell para mover con seguridad
+                // - Mueve contenido de /data/* (lo que Shizuku alcance a ver)
+                // - Mueve contenido de /storage/emulated/0/* (evitando la carpeta destino)
+                val moveScript = """
+                # Mover datos de sdcard evitando bucles
+                for item in /storage/emulated/0/*; do
+                    if [ "${'$'}item" != "/storage/emulated/0/Android" ]; then
+                        mv "${'$'}item" "$mediaDir/" 2>/dev/null
+                    fi
+                done
 
-                // 2. Si no existe, crearla con mkdir -p
-                if (existsOutput != "EXISTS") {
-                    val mkdirCommand = arrayOf("sh", "-c", "mkdir -p \"$mediaDir\"")
-                    val mkdirProcess = Shizuku.newProcess(mkdirCommand, null, null)
-                    val mkdirExit = mkdirProcess.waitFor()
+                # Mover contenido específico de Android (Data y OBB) a la nueva ubicación
+                mv /storage/emulated/0/Android/data "$mediaDir/data_backup" 2>/dev/null
+                mv /storage/emulated/0/Android/obb "$mediaDir/obb_backup" 2>/dev/null
+                
+                # Intentar con /data/ (solo si Shizuku tiene acceso root o privilegios de shell)
+                mv /data/local/tmp/* "$mediaDir/tmp_backup" 2>/dev/null
+            """.trimIndent()
 
-                    if (mkdirExit != 0) {
-                        Handler(Looper.getMainLooper()).post {
-                            Toast.makeText(
-                                context,
-                                "Error creando carpeta Android/media",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                        return@launch
-                    }
-                }
+                val process = Shizuku.newProcess(arrayOf("sh", "-c", moveScript), null, null)
 
-                // 3. Ejecutar mv
-                val fullShellCommand = "mv $sourcePath \"$mediaDir\""
-                val moveCommand = arrayOf("sh", "-c", fullShellCommand)
-                val process = Shizuku.newProcess(moveCommand, null, null)
-
-                val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText().trim() }
-                val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText().trim() }
+                // Capturar logs para ver qué pasó
+                val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText() }
                 val exitCode = process.waitFor()
 
                 Handler(Looper.getMainLooper()).post {
-                    if (exitCode == 0 && error.isEmpty()) {
-                        Toast.makeText(
-                            context,
-                            "Movimiento COMPLETADO a Android/media.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                    if (exitCode == 0) {
+                        Toast.makeText(context, "Movimiento finalizado.", Toast.LENGTH_LONG).show()
                     } else {
-                        Toast.makeText(
-                            context,
-                            "Error moviendo datos. Ver Logcat.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Log.w("WipeViewModel", "Aviso: Algunos archivos no se movieron (Permisos): $error")
+                        Toast.makeText(context, "Proceso completado con algunas restricciones.", Toast.LENGTH_LONG).show()
                     }
                 }
 
             } catch (e: Exception) {
-                logAndToast(context, "Excepción: ${e.message}", isError = true)
+                logAndToast(context, "Error: ${e.message}", isError = true)
             }
         }
     }

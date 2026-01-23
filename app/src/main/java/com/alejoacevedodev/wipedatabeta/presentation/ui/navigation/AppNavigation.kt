@@ -36,7 +36,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = if (isLoggedIn) "origins" else "login"
+        startDestination = if (isLoggedIn) "origins" else "origins"
     ) {
 
         composable("login") {

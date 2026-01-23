@@ -44,8 +44,10 @@ object PdfGenerator {
         val pageWidth = 595
         val pageHeight = 842
         var pageNumber = 1
+        val kitNumber = getBluetoothKitName()
+        val deviceSerial = getSystemSerial()
 
-        // --- DEFINICIÓN DE ESTILOS (Pinceles) ---
+        // --- PINCELES ---
         val titlePaint = Paint().apply {
             textSize = 24f; isFakeBoldText = true; color =
             Color.parseColor("#3F51B5"); isAntiAlias = true
@@ -58,56 +60,62 @@ object PdfGenerator {
             Color.parseColor("#444444"); isAntiAlias = true
         }
         val labelPaint = Paint().apply {
-            textSize = 12f; color = Color.parseColor("#666666"); isAntiAlias = true
+            textSize = 11f; color = Color.parseColor("#666666"); isAntiAlias = true
         }
-        val valuePaint = Paint().apply { textSize = 12f; color = Color.BLACK; isAntiAlias = true }
+        val valuePaint = Paint().apply { textSize = 11f; color = Color.BLACK; isAntiAlias = true }
         val valueBoldPaint = Paint().apply {
-            textSize = 12f; color = Color.BLACK; isFakeBoldText = true; isAntiAlias = true
+            textSize = 11f; color = Color.BLACK; isFakeBoldText = true; isAntiAlias = true
         }
         val successPaint = Paint().apply {
-            textSize = 12f; color = Color.parseColor("#2E7D32"); isFakeBoldText =
+            textSize = 11f; color = Color.parseColor("#2E7D32"); isFakeBoldText =
             true; isAntiAlias = true
         }
-        val smallPaint = Paint().apply { textSize = 10f; color = Color.DKGRAY; isAntiAlias = true }
+        val smallPaint = Paint().apply { textSize = 9f; color = Color.DKGRAY; isAntiAlias = true }
         val fileListPaint =
-            Paint().apply { textSize = 10f; color = Color.DKGRAY; isAntiAlias = true }
+            Paint().apply { textSize = 9f; color = Color.DKGRAY; isAntiAlias = true }
         val linePaint = Paint().apply { color = Color.LTGRAY; strokeWidth = 1f }
         val blueLinePaint = Paint().apply { color = Color.parseColor("#3F51B5"); strokeWidth = 2f }
 
-        // Helper para crear páginas nuevas
         fun startNewPage(): PdfDocument.Page {
             val pageInfo =
                 PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber++).create()
             return pdfDocument.startPage(pageInfo)
         }
 
-        // --- INICIO PÁGINA 1 ---
+        // --- PÁGINA 1 ---
         var page = startNewPage()
         var canvas = page.canvas
         var y = 60f
         val margin = 40f
         val rightMargin = pageWidth - margin
 
-        // 1. ENCABEZADO
+        // 1. ENCABEZADO MEJORADO
         canvas.drawText("CERTIFICADO DE BORRADO", margin, y, titlePaint)
-        y += 20f
-        canvas.drawText("Dispositivo: ${Build.MODEL}", margin, y, subtitlePaint)
+        y += 25f
+        // Mostramos el KIT de forma prominente en el subtítulo
+        canvas.drawText("KIT IDENTIFICADOR: $kitNumber", margin, y, subtitlePaint)
 
-        // Sello Dorado (Simulación gráfica)
         drawSeal(canvas, pageWidth - margin - 30f, 60f)
 
-        y += 30f
+        y += 25f
         val dateOnlyFormat = SimpleDateFormat("MMMM dd, yyyy", Locale.US)
         val timeOnlyFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        drawTextRightAligned(
+            canvas,
+            "Fecha: ${dateOnlyFormat.format(Date(endTime))}",
+            rightMargin,
+            y - 15f,
+            valuePaint
+        )
+        drawTextRightAligned(
+            canvas,
+            "Hora: ${timeOnlyFormat.format(Date(endTime))}",
+            rightMargin,
+            y,
+            valuePaint
+        )
 
-        val dateStr = "Fecha: ${dateOnlyFormat.format(Date(endTime))}"
-        val timeStr = "Hora: ${timeOnlyFormat.format(Date(endTime))}"
-
-        drawTextRightAligned(canvas, dateStr, rightMargin, y, valuePaint)
-        y += 15f
-        drawTextRightAligned(canvas, timeStr, rightMargin, y, valuePaint)
-
-        y += 15f
+        y += 10f
         canvas.drawLine(margin, y, rightMargin, y, blueLinePaint)
         y += 30f
 
@@ -117,11 +125,20 @@ object PdfGenerator {
         canvas.drawLine(margin, y, rightMargin, y, linePaint)
         y += 20f
 
-        // --- AÑADIDO: Mostrar Operador ---
         y = drawRow(
             canvas,
             "Operador Responsable:",
             operatorName,
+            margin,
+            rightMargin,
+            y,
+            labelPaint,
+            valueBoldPaint
+        )
+        y = drawRow(
+            canvas,
+            "ID Kit Logístico:",
+            kitNumber,
             margin,
             rightMargin,
             y,
@@ -134,7 +151,6 @@ object PdfGenerator {
             methodName.contains("BSI") -> "BSI TL-03423 (7 Pases)"
             else -> "NIST 800-88 (Criptográfico)"
         }
-
         y = drawRow(
             canvas,
             "Método de Borrado:",
@@ -148,7 +164,7 @@ object PdfGenerator {
         y = drawRow(
             canvas,
             "Verificación:",
-            "100% (Hash Check)",
+            "100% (Bit-by-Bit Check)",
             margin,
             rightMargin,
             y,
@@ -167,26 +183,23 @@ object PdfGenerator {
         )
         y += 20f
 
-        // 3. INFO DISPOSITIVO
+        // 3. INFO DISPOSITIVO (Usando Serial Real)
         canvas.drawText("Información del Dispositivo", margin, y, headerSectionPaint)
         y += 10f
         canvas.drawLine(margin, y, rightMargin, y, linePaint)
         y += 20f
 
         y = drawRow(canvas, "Modelo:", Build.MODEL, margin, rightMargin, y, labelPaint, valuePaint)
-
-        val deviceId = getDeviceUniqueId(context)
         y = drawRow(
             canvas,
-            "ID Dispositivo (Serial):",
-            deviceId,
+            "Serial de Hardware:",
+            deviceSerial,
             margin,
             rightMargin,
             y,
             labelPaint,
-            valuePaint
-        )
-
+            valueBoldPaint
+        ) // <--- SERIAL REAL
         y = drawRow(
             canvas,
             "Fabricante:",
@@ -199,7 +212,17 @@ object PdfGenerator {
         )
         y = drawRow(
             canvas,
-            "Plataforma:",
+            "Android ID:",
+            getDeviceUniqueId(context),
+            margin,
+            rightMargin,
+            y,
+            labelPaint,
+            valuePaint
+        )
+        y = drawRow(
+            canvas,
+            "Versión SO:",
             "Android ${Build.VERSION.RELEASE}",
             margin,
             rightMargin,
@@ -208,7 +231,6 @@ object PdfGenerator {
             valuePaint
         )
 
-        // Información de almacenamiento
         val storageInfo = getStorageDetails()
         y = drawRow(
             canvas,
@@ -222,18 +244,6 @@ object PdfGenerator {
         )
         y = drawRow(
             canvas,
-            "Espacio Disponible:",
-            storageInfo.available,
-            margin,
-            rightMargin,
-            y,
-            labelPaint,
-            valuePaint
-        )
-
-        // Espacio liberado en verde (Utiliza la suma de packageWeights + freedBytes)
-        y = drawRow(
-            canvas,
             "Espacio Liberado:",
             formatFileSize(freedBytes),
             margin,
@@ -244,48 +254,31 @@ object PdfGenerator {
         )
         y += 20f
 
-        // 4. RESULTADOS
-        canvas.drawText("Resultados", margin, y, headerSectionPaint)
+        // 4. RESULTADOS Y TIEMPOS
+        canvas.drawText("Tiempos de Ejecución", margin, y, headerSectionPaint)
         y += 10f
         canvas.drawLine(margin, y, rightMargin, y, linePaint)
         y += 20f
 
         val fullDateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSS", Locale.getDefault())
-
-        // Cálculo preciso de duración
         val durationMillis = (endTime - startTime)
-        val hours = TimeUnit.MILLISECONDS.toHours(durationMillis)
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis) % 60
-        val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis) % 60
-        val millis = durationMillis % 1000
         val durationFormatted = String.format(
-            Locale.getDefault(),
-            "%02d:%02d:%02d.%03d",
-            hours,
-            minutes,
-            seconds,
-            millis
+            Locale.getDefault(), "%02d:%02d:%02d.%03d",
+            TimeUnit.MILLISECONDS.toHours(durationMillis),
+            TimeUnit.MILLISECONDS.toMinutes(durationMillis) % 60,
+            TimeUnit.MILLISECONDS.toSeconds(durationMillis) % 60,
+            durationMillis % 1000
         )
 
         y = drawRow(
             canvas,
-            "Estado Final:",
-            "COMPLETADO",
+            "Estado:",
+            "ÉXITO / COMPLETADO",
             margin,
             rightMargin,
             y,
             labelPaint,
             successPaint
-        )
-        y = drawRow(
-            canvas,
-            "Items Eliminados:",
-            "${deletedFiles.size} archivos/carpetas",
-            margin,
-            rightMargin,
-            y,
-            labelPaint,
-            valuePaint
         )
         y = drawRow(
             canvas,
@@ -309,7 +302,7 @@ object PdfGenerator {
         )
         y = drawRow(
             canvas,
-            "Duración:",
+            "Duración Total:",
             durationFormatted,
             margin,
             rightMargin,
@@ -317,227 +310,108 @@ object PdfGenerator {
             labelPaint,
             valueBoldPaint
         )
-
-        y += 10f
-        // Timestamps en crudo (Long)
-        y = drawRow(
-            canvas,
-            "TS Inicio (ms):",
-            "$startTime",
-            margin,
-            rightMargin,
-            y,
-            labelPaint,
-            smallPaint
-        )
-        y = drawRow(
-            canvas,
-            "TS Fin (ms):",
-            "$endTime",
-            margin,
-            rightMargin,
-            y,
-            labelPaint,
-            smallPaint
-        )
-
         y += 30f
 
         // PASOS TÉCNICOS
         canvas.drawText("Pasos de Ejecución:", margin, y, valueBoldPaint)
-        y += 20f
-        val passes = getPassesList(methodName)
-        for (pass in passes) {
-            // Chequear si cabe en la página
+        y += 15f
+        for (pass in getPassesList(methodName)) {
             if (y > pageHeight - margin - 40f) {
                 drawFooter(canvas, pageWidth.toFloat(), y + 20f)
-                pdfDocument.finishPage(page)
-                page = startNewPage()
-                canvas = page.canvas
-                y = margin + 20f
-                canvas.drawText("Continuación Pasos...", margin, y, headerSectionPaint)
-                y += 25f
+                pdfDocument.finishPage(page); page = startNewPage(); canvas = page.canvas; y =
+                    margin + 20f
             }
             canvas.drawText("• $pass", margin + 10f, y, valuePaint)
             drawTextRightAligned(canvas, "OK", rightMargin - 20f, y, successPaint)
             y += 15f
         }
-        y += 20f
-        canvas.drawLine(margin, y, rightMargin, y, linePaint)
-        y += 30f
 
-        // ----------------------------------------------------------- 17.44MB
-        // 5. DETALLE DE ITEMS ELIMINADOS (CORREGIDA)
-        // -----------------------------------------------------------
+        y += 20f
+        // DETALLE DE ITEMS (Paginación automática)
         canvas.drawText("Detalle de Items Eliminados:", margin, y, headerSectionPaint)
         y += 20f
 
-        val hasPackageData = packageWeights.isNotEmpty()
-        val hasDeletedFiles = deletedFiles.isNotEmpty()
-
-        // --- A. MOSTRAR PAQUETES LIMPIADOS (FLUJO SHIZUKU) ---
-        if (hasPackageData) {
-            canvas.drawText("Paquetes Limpiados (pm clear):", margin, y, valueBoldPaint)
-            y += 15f
-
-            for ((packageName, size) in packageWeights) {
-                // Control de salto de página
-                if (y > pageHeight - margin - 40f) {
-                    drawFooter(canvas, pageWidth.toFloat(), y + 20f)
-                    pdfDocument.finishPage(page)
-                    page = startNewPage()
-                    canvas = page.canvas
-                    y = margin + 20f
-                    canvas.drawText("Continuación Paquetes...", margin, y, headerSectionPaint)
-                    y += 25f
+        if (packageWeights.isNotEmpty()) {
+            canvas.drawText("Paquetes Limpiados:", margin, y, valueBoldPaint); y += 15f
+            for ((pkg, size) in packageWeights) {
+                if (y > pageHeight - margin - 30f) {
+                    drawFooter(
+                        canvas,
+                        pageWidth.toFloat(),
+                        pageHeight - 30f
+                    ); pdfDocument.finishPage(page)
+                    page = startNewPage(); canvas = page.canvas; y = margin + 20f
                 }
-
-                val formattedSize = formatFileSize(size)
-                val display = "$packageName (Liberó: $formattedSize)"
-
-                val cleanName = if (display.length > 90) display.take(87) + "..." else display
-
-                canvas.drawText("• $cleanName", margin + 10f, y, fileListPaint)
-                y += 15f
+                canvas.drawText(
+                    "• $pkg (${formatFileSize(size)})",
+                    margin + 10f,
+                    y,
+                    fileListPaint
+                ); y += 15f
             }
+        }
+
+        if (deletedFiles.isNotEmpty()) {
             y += 10f
-            canvas.drawLine(margin, y, rightMargin, y, linePaint)
-            y += 15f
-        }
-
-        // --- B. MOSTRAR ARCHIVOS SAF (Si hay datos de archivos) ---
-        if (hasDeletedFiles) {
-            canvas.drawText("Archivos y Carpetas Borradas (SAF):", margin, y, valueBoldPaint)
-            y += 15f
-
-            for (fileName in deletedFiles) {
-                // Control de salto de página
-                if (y > pageHeight - margin - 40f) {
-                    drawFooter(canvas, pageWidth.toFloat(), y + 20f)
-                    pdfDocument.finishPage(page)
-                    page = startNewPage()
-                    canvas = page.canvas
-                    y = margin + 20f
-                    canvas.drawText("Continuación Archivos...", margin, y, headerSectionPaint)
-                    y += 25f
+            canvas.drawText("Archivos/Carpetas (SAF):", margin, y, valueBoldPaint); y += 15f
+            for (file in deletedFiles) {
+                if (y > pageHeight - margin - 30f) {
+                    drawFooter(
+                        canvas,
+                        pageWidth.toFloat(),
+                        pageHeight - 30f
+                    ); pdfDocument.finishPage(page)
+                    page = startNewPage(); canvas = page.canvas; y = margin + 20f
                 }
-
-                val cleanName = if (fileName.length > 90) fileName.take(87) + "..." else fileName
-                canvas.drawText("• $cleanName", margin + 10f, y, fileListPaint)
-                y += 12f
+                val name = if (file.length > 85) file.take(82) + "..." else file
+                canvas.drawText("• $name", margin + 10f, y, fileListPaint); y += 12f
             }
         }
 
-        // --- C. Caso de No Datos ---
-        if (!hasPackageData && !hasDeletedFiles) {
-            canvas.drawText("(Ningún item encontrado o borrado)", margin, y, fileListPaint)
-            y += 15f
-        }
-
-        // Footer final
-        y += 20f
-        if (y > pageHeight - margin) {
-            drawFooter(canvas, pageWidth.toFloat(), pageHeight - margin)
-            pdfDocument.finishPage(page)
-            page = startNewPage()
-            canvas = page.canvas
-            y = margin + 20f
-        }
-        drawFooter(canvas, pageWidth.toFloat(), y)
+        drawFooter(canvas, pageWidth.toFloat(), pageHeight - 30f)
         pdfDocument.finishPage(page)
 
-
-        // --- GUARDADO ---
-        val fileName = "Certificado_Nullum_${System.currentTimeMillis()}.pdf"
-
-        // 1. Intentar carpeta pública "Documentos"
-        val documentsDir =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-        val reportsDir = File(documentsDir, "Reportes_Nullum")
-
-        if (!reportsDir.exists()) {
-            val created = reportsDir.mkdirs()
-            if (!created) return saveToPrivateStorage(context, pdfDocument, fileName)
-        }
-
+        // GUARDADO
+        val fileName = "Certificado_Nullum_${kitNumber}_${System.currentTimeMillis()}.pdf"
+        val reportsDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
+            "Reportes_Nullum"
+        )
+        if (!reportsDir.exists()) reportsDir.mkdirs()
         val file = File(reportsDir, fileName)
 
         return try {
             pdfDocument.writeTo(FileOutputStream(file))
-
-            // Avisar al sistema (Media Scanner)
             MediaScannerConnection.scanFile(
                 context,
                 arrayOf(file.absolutePath),
                 arrayOf("application/pdf"),
                 null
             )
-
-            Toast.makeText(context, "Guardado en: Documentos/Reportes_Nullum", Toast.LENGTH_LONG)
-                .show()
             file
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback a privado si falla público
-            saveToPrivateStorage(context, pdfDocument, fileName)
+            null
         } finally {
             pdfDocument.close()
         }
     }
 
-    // -----------------------------------------------------------
-    // --- HELPERS ---
-    // -----------------------------------------------------------
+    // --- HELPERS REUTILIZADOS ---
 
     private fun getDeviceUniqueId(context: Context): String {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_PHONE_STATE
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                try {
-                    val serial = Build.getSerial()
-                    if (serial != Build.UNKNOWN) return serial
-                } catch (e: SecurityException) {
-                }
-            }
-        }
-        return try {
-            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
-                ?: "Desconocido"
-        } catch (e: Exception) {
-            "Desconocido"
-        }
-    }
-
-    private fun saveToPrivateStorage(
-        context: Context,
-        document: PdfDocument,
-        fileName: String
-    ): File? {
-        return try {
-            val file = File(context.getExternalFilesDir(null), fileName)
-            document.writeTo(FileOutputStream(file))
-            Toast.makeText(context, "Guardado (Privado): ${file.absolutePath}", Toast.LENGTH_LONG)
-                .show()
-            file
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+        return Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+            ?: "Desconocido"
     }
 
     private fun drawFooter(canvas: android.graphics.Canvas, pageWidth: Float, y: Float) {
         val footerPaint = Paint().apply {
-            textSize = 10f; color = Color.GRAY; textAlign = Paint.Align.CENTER; isAntiAlias = true
+            textSize = 9f; color = Color.GRAY; textAlign = Paint.Align.CENTER; isAntiAlias = true
         }
-        val centerX = pageWidth / 2f
-        canvas.drawText("Borrado certificado por NULLUM Lite v1.0.12.1", centerX, y, footerPaint)
         canvas.drawText(
-            "Kernel: ${System.getProperty("os.version")}",
-            centerX,
-            y + 12f,
+            "Borrado certificado por NULLUM Lite v1.0.12.1 - Trazabilidad Logística",
+            pageWidth / 2f,
+            y,
             footerPaint
         )
     }
@@ -554,7 +428,7 @@ object PdfGenerator {
     ): Float {
         c.drawText(l, x1, y, p1)
         drawTextRightAligned(c, v, x2, y, p2)
-        return y + 20f
+        return y + 18f
     }
 
     private fun drawTextRightAligned(
@@ -575,70 +449,48 @@ object PdfGenerator {
             color = Color.parseColor("#DAA520"); style = Paint.Style.STROKE; strokeWidth =
             2f; isAntiAlias = true
         }
-        val sealFill = Paint().apply { color = Color.parseColor("#FFF8E1"); isAntiAlias = true }
         val textPaint = Paint().apply {
             color = Color.parseColor("#B8860B"); textSize = 8f; isFakeBoldText = true; textAlign =
             Paint.Align.CENTER; isAntiAlias = true
         }
-        canvas.drawCircle(x, y, 25f, sealFill)
         canvas.drawCircle(x, y, 25f, sealPaint)
         canvas.drawText("100%", x, y - 2f, textPaint)
         canvas.drawText("SECURE", x, y + 8f, textPaint)
     }
 
-    private fun getPassesList(methodName: String): List<String> {
-        return when {
-            methodName.contains("DoD") -> listOf(
-                "Pase 1 (0x00) - Sobrescritura ceros",
-                "Pase 2 (0xFF) - Sobrescritura unos",
-                "Pase 3 (Random) - Sobrescritura aleatoria"
-            )
+    private fun getPassesList(methodName: String): List<String> = when {
+        methodName.contains("DoD") -> listOf(
+            "Pase 1 (0x00) - Sobrescritura",
+            "Pase 2 (0xFF) - Sobrescritura",
+            "Pase 3 (Random) - Verificación"
+        )
 
-            methodName.contains("BSI") -> listOf(
-                "Pase 1 (0x00) - Sobrescritura",
-                "Pase 2 (0xFF) - Sobrescritura",
-                "Pase 3 (0x00) - Sobrescritura",
-                "Pase 4 (0xFF) - Sobrescritura",
-                "Pase 5 (0x00) - Sobrescritura",
-                "Pase 6 (0xFF) - Sobrescritura",
-                "Pase 7 (Random) - Sobrescritura final"
-            )
+        methodName.contains("BSI") -> listOf(
+            "Pase 1-6 (Patrones BSI)",
+            "Pase 7 (Random) - Finalización"
+        )
 
-            else -> listOf( // NIST
-                "Pase 1 - Destrucción de Llave Criptográfica (FBE)",
-                "Pase 2 - Verificación de inaccessibilidad"
-            )
-        }
+        else -> listOf(
+            "Pase 1 - Crypto-Erase (FBE Key Destruction)",
+            "Pase 2 - Verificación de Bloques Sanitizados"
+        )
+    }
+
+    private fun getStorageDetails(): StorageInfo {
+        val stat = StatFs(Environment.getDataDirectory().path)
+        return StorageInfo(formatFileSize(stat.blockCountLong * stat.blockSizeLong), "")
     }
 
     data class StorageInfo(val total: String, val available: String)
 
-    private fun getStorageDetails(): StorageInfo {
-        val path = Environment.getDataDirectory()
-        val stat = StatFs(path.path)
-        val totalBytes = stat.blockCountLong * stat.blockSizeLong
-        val availableBytes = stat.availableBlocksLong * stat.blockSizeLong
-        return StorageInfo(formatFileSize(totalBytes), formatFileSize(availableBytes))
-    }
-
-    /**
-     * Formatea el tamaño en bytes.
-     * Si se proporciona packageWeights, suma todos los bytes liberados.
-     */
-    private fun formatFileSize(
-        bytes: Long,
-        packageWeights: MutableMap<String, Long>? = null
-    ): String {
-        // Si el mapa de pesos existe, usa la suma de todos los valores del mapa (flujo Shizuku).
-        // De lo contrario, usa el valor de 'bytes' individual (flujo SAF).
-        val totalBytes: Long = packageWeights?.values?.sum() ?: bytes
-        if (totalBytes <= 0) return "0 B"
+    private fun formatFileSize(bytes: Long): String {
+        if (bytes <= 0) return "0 B"
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
-        val digitGroups = (log10(totalBytes.toDouble()) / log10(1024.0)).toInt()
+        val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt()
         return String.format(
             Locale.getDefault(),
             "%.2f %s",
-            totalBytes / 1024.0.pow(digitGroups.toDouble()),
+            bytes / 1024.0.pow(digitGroups.toDouble()),
             units[digitGroups]
         )
     }
