@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +40,7 @@ import com.alejoacevedodev.wipedatabeta.domain.model.WipeUiState
 import com.alejoacevedodev.wipedatabeta.presentation.ui.composables.CurvedHeader
 import com.alejoacevedodev.wipedatabeta.presentation.wipe.WipeViewModel
 import com.alejoacevedodev.wipedatabeta.ui.theme.FormFontFamily
+import com.alejoacevedodev.wipedatabeta.utils.getAppVersion
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -54,6 +56,7 @@ fun ReportScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val _uiState = MutableStateFlow(WipeUiState())
+    val context = LocalContext.current
 
     val PrimaryDarkBlue = Color(0xFF1E3A8A)
     val PrimaryBlue = Color(0xFF2E61F1)
@@ -89,6 +92,8 @@ fun ReportScreen(
     // --- LÓGICA DE ALMACENAMIENTO ---
     val storageInfo = remember { getUiStorageDetails() }
     val freedBytesStr = remember(state.freedBytes) { formatFileSize(state.freedBytes) }
+
+    val appVersion = remember { getAppVersion(context) }
 
     Box(
         modifier = Modifier
@@ -230,7 +235,7 @@ fun ReportScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text("Versión 1.0.12.1", fontFamily = FormFontFamily, color = Color.Gray, fontSize = 12.sp)
+                    Text("Versión ${appVersion}", fontFamily = FormFontFamily, color = Color.Gray, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(24.dp))
                 }
             }

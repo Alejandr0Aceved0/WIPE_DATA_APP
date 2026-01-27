@@ -113,15 +113,23 @@ class WipeViewModel @Inject constructor(
                 val process = Shizuku.newProcess(arrayOf("sh", "-c", moveScript), null, null)
 
                 // Capturar logs para ver qué pasó
-                val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText() }
+                val error =
+                    BufferedReader(InputStreamReader(process.errorStream)).use { it.readText() }
                 val exitCode = process.waitFor()
 
                 Handler(Looper.getMainLooper()).post {
                     if (exitCode == 0) {
                         Toast.makeText(context, "Movimiento finalizado.", Toast.LENGTH_LONG).show()
                     } else {
-                        Log.w("WipeViewModel", "Aviso: Algunos archivos no se movieron (Permisos): $error")
-                        Toast.makeText(context, "Proceso completado con algunas restricciones.", Toast.LENGTH_LONG).show()
+                        Log.w(
+                            "WipeViewModel",
+                            "Aviso: Algunos archivos no se movieron (Permisos): $error"
+                        )
+                        Toast.makeText(
+                            context,
+                            "Proceso completado con algunas restricciones.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
 
@@ -138,7 +146,8 @@ class WipeViewModel @Inject constructor(
             Log.i("WipeViewModel", message)
         }
         Handler(Looper.getMainLooper()).post {
-            Toast.makeText(context, message, if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, message, if (isError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT)
+                .show()
         }
     }
 
@@ -158,9 +167,20 @@ class WipeViewModel @Inject constructor(
             }
         }
     }
-    fun selectMethod(method: WipeMethod) { _uiState.update { it.copy(selectedMethod = method) } }
 
-    fun resetWipeStatus() { _uiState.update { it.copy(wipeFinished = false) } }
+    fun selectMethod(method: WipeMethod) {
+        _uiState.update { it.copy(selectedMethod = method) }
+    }
+
+    fun resetWipeStatus() {
+        _uiState.update {
+            it.copy(
+                wipeFinished = true,
+                selectedFolders = emptyList(),
+                packagesToWipe = emptyList()
+            )
+        }
+    }
 
     // --- EJECUCIÓN MAESTRA ---
     fun startWipeProcess() = viewModelScope.launch(Dispatchers.IO) {
@@ -184,13 +204,15 @@ class WipeViewModel @Inject constructor(
             allLogs.addAll(result.deletedFiles)
         }
 
-        _uiState.update { it.copy(
-            isWiping = false,
-            wipeFinished = true,
-            freedBytes = totalBytes,
-            deletedFilesList = allLogs,
-            wipeEndTime = System.currentTimeMillis()
-        )}
+        _uiState.update {
+            it.copy(
+                isWiping = false,
+                wipeFinished = true,
+                freedBytes = totalBytes,
+                deletedFilesList = allLogs,
+                wipeEndTime = System.currentTimeMillis()
+            )
+        }
     }
 
     fun generatePdf() {
@@ -201,8 +223,10 @@ class WipeViewModel @Inject constructor(
             try {
                 val state = _uiState.value
                 // Lógica de tiempos de seguridad
-                val safeStart = if (state.wipeStartTime > 1704067200000L) state.wipeStartTime else System.currentTimeMillis()
-                val safeEnd = if (state.wipeEndTime > 1704067200000L) state.wipeEndTime else System.currentTimeMillis()
+                val safeStart =
+                    if (state.wipeStartTime > 1704067200000L) state.wipeStartTime else System.currentTimeMillis()
+                val safeEnd =
+                    if (state.wipeEndTime > 1704067200000L) state.wipeEndTime else System.currentTimeMillis()
 
                 // 2. Generar PDF en hilo IO
                 val pdfFile = withContext(Dispatchers.IO) {
@@ -224,7 +248,8 @@ class WipeViewModel @Inject constructor(
                     // 3. Proceso de FTP (si aplica)
                     if (state.ftpHost.isNotEmpty()) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(application, "Subiendo reporte...", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(application, "Subiendo reporte...", Toast.LENGTH_SHORT)
+                                .show()
                         }
 
                         val uploaded = withContext(Dispatchers.IO) {
@@ -238,8 +263,16 @@ class WipeViewModel @Inject constructor(
                         }
 
                         withContext(Dispatchers.Main) {
-                            if (uploaded) Toast.makeText(application, "✅ Sincronizado con la nube", Toast.LENGTH_SHORT).show()
-                            else Toast.makeText(application, "⚠️ Guardado local (Fallo FTP)", Toast.LENGTH_LONG).show()
+                            if (uploaded) Toast.makeText(
+                                application,
+                                "✅ Sincronizado con la nube",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            else Toast.makeText(
+                                application,
+                                "⚠️ Guardado local (Fallo FTP)",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
                 }
