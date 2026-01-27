@@ -372,7 +372,7 @@ object PdfGenerator {
         pdfDocument.finishPage(page)
 
         // GUARDADO
-        val fileName = "Certificado_Nullum_${kitNumber}_${System.currentTimeMillis()}.pdf"
+        val fileName = "${kitNumber}_${System.currentTimeMillis()}.pdf"
         val reportsDir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
             "Reportes_Nullum"
