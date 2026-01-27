@@ -31,5 +31,7 @@ data class WipeUiState(
     val packageWeights: MutableMap<String, Long> = mutableMapOf(),
     val isPackageSelected: Boolean = false,
     val isFolderSelected: Boolean = false,
-    val isShizukuPermitted: Boolean = false
+    val isShizukuPermitted: Boolean = false,
+
+    val isGeneratingPdf: Boolean = false
 )

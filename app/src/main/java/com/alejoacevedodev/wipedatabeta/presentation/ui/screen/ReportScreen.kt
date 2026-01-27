@@ -195,13 +195,22 @@ fun ReportScreen(
                     // 4. BOTONES (Estilo Píldora de Figma)
                     Button(
                         onClick = { viewModel.generatePdf() },
+                        enabled = !state.isGeneratingPdf,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (state.isGeneratingPdf) Color.Gray else PrimaryBlue
+                        ),
                         shape = RoundedCornerShape(28.dp)
                     ) {
-                        Text("Descargar Certificado PDF", color = Color.White, fontFamily = FormFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(
+                            text = if (state.isGeneratingPdf) "Generando..." else "Descargar Certificado PDF",
+                            color = Color.White,
+                            fontFamily = FormFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -223,6 +232,35 @@ fun ReportScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Versión 1.0.12.1", fontFamily = FormFontFamily, color = Color.Gray, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+        }
+
+
+        if (state.isGeneratingPdf) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White,
+                    tonalElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            color = PrimaryBlue,
+                            strokeWidth = 4.dp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(text = "Procesando certificado")
+                        Text(text = "Por favor espere...")
+                    }
                 }
             }
         }
