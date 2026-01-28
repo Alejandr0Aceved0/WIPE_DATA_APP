@@ -1,43 +1,47 @@
-#!/bin/zsh
+#!/bin/bash
 
-# --- CONFIGURACIÓN ---
-REMOTE_PATH="/sdcard/Documents/Reportes_Nullum"
+# --- SOLUCIÓN PARA WINDOWS ---
+# Esto evita que Git Bash convierta las rutas de Android en rutas de Windows
+export MSYS_NO_PATHCONV=1
+
+REMOTE_PATH="/storage/sdcard0/Documents/Reportes_Nullum"
 LOCAL_DIR="./CERTIFICADOS_RECUPERADOS"
 FECHA_HOY=$(date +%Y-%m-%d)
 DESTINO_FINAL="$LOCAL_DIR/$FECHA_HOY"
+
+mkdir -p "$DESTINO_FINAL"
 
 echo "===================================================="
 echo "   NULLUM LITE - EXTRACTOR DE CERTIFICADOS"
 echo "===================================================="
 
-# Crear carpetas locales
-mkdir -p "$DESTINO_FINAL"
-
-# Obtener dispositivos conectados
-devices=$(adb devices | grep -v "List" | awk '{print $1}' | grep . )
-
-if [ -z "$devices" ]; then
-    echo "❌ Error: No se detectaron dispositivos por ADB."
-    exit 1
-fi
+# Obtener dispositivos
+devices=$(adb devices | grep -v "List" | awk '{print $1}' | grep .)
 
 count=0
 
 for SERIAL in $devices; do
-    # Obtener nombre del modelo para el log
-    MODEL=$(adb -s $SERIAL shell getprop ro.product.model | tr -d '\r')
+    MODEL=$(adb -s $SERIAL shell getprop ro.product.model | tr -d '\r\n')
     echo "--- Escaneando: $MODEL [$SERIAL] ---"
 
-    # Buscamos los archivos y los procesamos línea por línea de forma compatible
-    adb -s $SERIAL shell "ls $REMOTE_PATH/*.pdf 2>/dev/null" | while read -r REMOTE_FILE; do
-        # Limpiar caracteres ocultos del nombre del archivo
-        REMOTE_FILE=$(echo "$REMOTE_FILE" | tr -d '\r')
+    # Obtenemos los archivos limpiando los retornos de carro de Android
+    files=$(adb -s $SERIAL shell "ls $REMOTE_PATH/*.pdf 2>/dev/null" | tr -d '\r')
 
-        if [[ -n "$REMOTE_FILE" ]]; then
+    if [ -z "$files" ]; then
+        echo "    ⚠️ No se encontraron archivos."
+        continue
+    fi
+
+    # Usamos un bucle for simple para evitar subshells
+    for REMOTE_FILE in $files; do
+        # Limpiar cualquier espacio o caracter extraño
+        REMOTE_FILE=$(echo "$REMOTE_FILE" | xargs)
+
+        if [[ -n "$REMOTE_FILE" && "$REMOTE_FILE" == *.pdf ]]; then
             FILE_NAME=$(basename "$REMOTE_FILE")
-
             echo "    [📥] Descargando: $FILE_NAME"
-            # Descargamos con comillas para evitar errores si hay espacios
+
+            # El pull ahora recibirá la ruta pura de Android
             adb -s $SERIAL pull "$REMOTE_FILE" "$DESTINO_FINAL/" > /dev/null 2>&1
 
             if [ $? -eq 0 ]; then
@@ -51,9 +55,8 @@ echo "===================================================="
 if [ $count -gt 0 ]; then
     echo "✅ EXITOSO: Se recuperaron $count certificados."
     echo "📂 Ubicación: $DESTINO_FINAL"
-    # Abrir la carpeta en el Finder de Mac
-    open "$DESTINO_FINAL"
-    say "Certificados recuperados"
+    # Convertimos la ruta para que Windows Explorer la entienda
+    explorer.exe "$(cygpath -w "$DESTINO_FINAL")"
 else
-    echo "⚠️ No se encontró ningún archivo PDF en $REMOTE_PATH"
+    echo "⚠️ No se pudo recuperar ningún archivo."
 fi
