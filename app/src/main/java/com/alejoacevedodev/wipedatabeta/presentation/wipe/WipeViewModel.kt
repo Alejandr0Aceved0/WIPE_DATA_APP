@@ -173,11 +173,21 @@ class WipeViewModel @Inject constructor(
     }
 
     fun resetWipeStatus() {
-        _uiState.update {
-            it.copy(
-                wipeFinished = true,
+        _uiState.update { currentState ->
+            currentState.copy(
+                isWiping = false,
+                currentWipingFile = "",
+                wipeFinished = false,
+                deletedCount = 0,
+                deletedFilesList = emptyList(),
+                freedBytes = 0L,
+                wipeStartTime = 0,
+                wipeEndTime = 0,
                 selectedFolders = emptyList(),
-                packagesToWipe = emptyList()
+                packagesToWipe = emptyList(),
+                isPackageSelected = false,
+                isFolderSelected = false,
+                isGeneratingPdf = false
             )
         }
     }
