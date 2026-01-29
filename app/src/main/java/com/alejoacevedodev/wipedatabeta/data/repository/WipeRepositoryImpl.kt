@@ -18,48 +18,55 @@ class WipeRepositoryImpl(
     private val context: Context
 ) : IWipeRepository {
 
-    override suspend fun wipe(uri: Uri, method: WipeMethod): Result<WipeResult> = withContext(Dispatchers.IO) {
-        try {
-            // Determinamos si es un árbol de carpetas (Tree) o un archivo (Document)
-            val rootDocumentId = if (DocumentsContract.isTreeUri(uri)) {
-                DocumentsContract.getTreeDocumentId(uri)
-            } else {
-                null
-            }
-
-            // Caso: Archivo único seleccionado directamente (no es una carpeta entera)
-            if (rootDocumentId == null) {
-                val name = getFileName(uri) ?: uri.lastPathSegment ?: "Archivo"
-                val size = getFileSize(uri) // Calculamos tamaño antes de borrar
-                return@withContext try {
-                    wipeSingleFile(uri, method)
-                    Result.success(WipeResult(listOf("Archivo: $name"), size))
-                } catch (e: Exception) {
-                    Result.failure(e)
+    override suspend fun wipe(uri: Uri, method: WipeMethod): Result<WipeResult> =
+        withContext(Dispatchers.IO) {
+            try {
+                // Determinamos si es un árbol de carpetas (Tree) o un archivo (Document)
+                val rootDocumentId = if (DocumentsContract.isTreeUri(uri)) {
+                    DocumentsContract.getTreeDocumentId(uri)
+                } else {
+                    null
                 }
+
+                // Caso: Archivo único seleccionado directamente (no es una carpeta entera)
+                if (rootDocumentId == null) {
+                    val name = getFileName(uri) ?: uri.lastPathSegment ?: "Archivo"
+                    val size = getFileSize(uri) // Calculamos tamaño antes de borrar
+                    return@withContext try {
+                        wipeSingleFile(uri, method)
+                        Result.success(WipeResult(listOf("Archivo: $name"), size))
+                    } catch (e: Exception) {
+                        Result.failure(e)
+                    }
+                }
+
+                // Caso: Carpeta (Árbol) -> Usamos algoritmo iterativo anti-crash
+                val result = wipeIterative(uri, rootDocumentId, method)
+                Result.success(result)
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Result.failure(e)
             }
-
-            // Caso: Carpeta (Árbol) -> Usamos algoritmo iterativo anti-crash
-            val result = wipeIterative(uri, rootDocumentId, method)
-            Result.success(result)
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(e)
         }
-    }
 
     /**
      * Algoritmo iterativo (BFS/Pila) para recorrer y borrar carpetas profundas.
      * Evita StackOverflowError y calcula el tamaño total liberado.
      */
-    private suspend fun wipeIterative(treeUri: Uri, rootId: String, method: WipeMethod): WipeResult {
+    private suspend fun wipeIterative(
+        treeUri: Uri,
+        rootId: String,
+        method: WipeMethod
+    ): WipeResult {
         val deletedLog = ArrayList<String>()
         var totalBytesFreed = 0L
 
         // Pilas para organizar el descubrimiento y borrado
-        val foldersToDelete = ArrayDeque<Pair<String, String>>() // Guardamos (ID, Nombre) para borrar al final
-        val filesToDelete = ArrayList<Pair<Uri, String>>()       // Guardamos (URI, Nombre) para borrar primero
+        val foldersToDelete =
+            ArrayDeque<Pair<String, String>>() // Guardamos (ID, Nombre) para borrar al final
+        val filesToDelete =
+            ArrayList<Pair<Uri, String>>()       // Guardamos (URI, Nombre) para borrar primero
 
         // Cola para el descubrimiento (Breadth-First Search)
         val queue = ArrayDeque<String>()
@@ -84,7 +91,8 @@ class WipeRepositoryImpl(
                 foldersToDelete.addLast(Pair(currentId, name))
 
                 // Buscamos sus hijos
-                val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, currentId)
+                val childrenUri =
+                    DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, currentId)
                 try {
                     context.contentResolver.query(
                         childrenUri,
@@ -107,6 +115,7 @@ class WipeRepositoryImpl(
 
         // --- FASE 2: BORRADO DE ARCHIVOS ---
         for ((fileUri, fileName) in filesToDelete) {
+            kotlinx.coroutines.yield()
             try {
                 // 1. Medir tamaño antes de destruir
                 val size = getFileSize(fileUri)
@@ -133,7 +142,10 @@ class WipeRepositoryImpl(
                 if (deleteDocument(folderUri)) {
                     deletedLog.add("Carpeta: $folderName")
                 } else {
-                    Log.w("WipeRepo", "No se pudo borrar carpeta: $folderName (posiblemente no vacía)")
+                    Log.w(
+                        "WipeRepo",
+                        "No se pudo borrar carpeta: $folderName (posiblemente no vacía)"
+                    )
                 }
             } catch (e: Exception) {
                 Log.e("WipeRepo", "Excepción borrando carpeta: $folderName", e)
@@ -151,10 +163,12 @@ class WipeRepositoryImpl(
             WipeMethod.NIST_SP_800_88 -> {
                 if (!deleteDocument(uri)) throw Exception("NIST delete failed")
             }
+
             WipeMethod.DoD_5220_22_M -> {
                 val patterns = listOf(Pattern.ZERO, Pattern.ONE, Pattern.RANDOM)
                 overwriteAndWipe(uri, patterns)
             }
+
             WipeMethod.BSI_TL_03423 -> {
                 val patterns = listOf(
                     Pattern.ZERO, Pattern.ONE, Pattern.ZERO, Pattern.ONE,
@@ -170,23 +184,36 @@ class WipeRepositoryImpl(
     /**
      * Lógica de sobrescritura física.
      */
-    private suspend fun overwriteAndWipe(uri: Uri, patterns: List<Pattern>) {
+    private fun overwriteAndWipe(uri: Uri, patterns: List<Pattern>) {
+        val fileSize = getFileSize(uri)
+        if (fileSize > 500 * 1024 * 1024) {
+            Log.d("WipeRepo", "Archivo grande detectado (${formatSize(fileSize)}). Usando NIST para estabilidad.")
+            if (!deleteDocument(uri)) {
+                throw Exception("Error al eliminar archivo grande mediante NIST")
+            }
+            return
+        }
+
         try {
             context.contentResolver.openFileDescriptor(uri, "rw")?.use { pfd ->
                 val len = pfd.statSize
-                if (len == 0L) return@use
+                if (len <= 0L) return@use
+                val bufferSize = 64 * 1024
+                val buf = ByteArray(bufferSize)
 
                 FileOutputStream(pfd.fileDescriptor).use { fos ->
-                    val buf = ByteArray(4096)
                     for (pat in patterns) {
                         var written = 0L
                         fos.channel.position(0)
+
                         while (written < len) {
+
                             when (pat) {
                                 Pattern.ZERO -> buf.fill(0)
                                 Pattern.ONE -> buf.fill(-1)
                                 Pattern.RANDOM -> Random.nextBytes(buf)
                             }
+
                             val toWrite = minOf(buf.size.toLong(), len - written).toInt()
                             fos.write(buf, 0, toWrite)
                             written += toWrite
@@ -196,9 +223,11 @@ class WipeRepositoryImpl(
                 }
             }
         } catch (e: Exception) {
-            Log.w("WipeRepo", "Error sobrescribiendo $uri: ${e.message}. Intentando borrar directo.")
+            Log.w("WipeRepo", "Error sobrescribiendo $uri: ${e.message}. Intentando borrado directo.")
         }
-        if (!deleteDocument(uri)) throw Exception("Error final delete")
+        if (!deleteDocument(uri)) {
+            throw Exception("No se pudo completar la eliminación final del archivo")
+        }
     }
 
     // --- HELPERS ROBUSTOS ---
